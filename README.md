@@ -17,3 +17,7 @@ A Python-based malware simulation that displays HellHound warning messages and d
 
 ```bash
 pip install -r requirements.txt
+```
+## Usage
+```bash
+python hell_hound.py
