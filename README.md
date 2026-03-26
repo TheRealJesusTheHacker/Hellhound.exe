@@ -21,3 +21,24 @@ pip install -r requirements.txt
 ## Usage
 ```bash
 python hell_hound.py
+```
+## Security Implications
+
+This script demonstrates how malware might:
+
+    Display intimidating warnings
+    Mark critical files for deletion
+    Provide feedback during execution
+    Run destructive operations silently
+```## Mitigation Strategies
+
+    Monitor for unusual process behavior
+    Check for unexpected files on Desktop
+    Verify file integrity with checksums
+    Implement regular backups
+    Restrict write access to sensitive directories
+
+```
+```## Disclaimer
+
+This is a simulation for educational purposes only.
