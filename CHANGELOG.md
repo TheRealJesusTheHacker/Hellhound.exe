@@ -1,3 +1,17 @@
+# Hellhound.exe - Changelog
+
+## [visual-demo v1.1] - 2026-09-20
+- Hellhound's sign-off in blood-red terminal text at total destruction:
+  "Hellhound Fetched Their souls. Hard drives will Rott in Hell. Goodbye My Pup."
+- Repo renamed to Hellhound.exe; README rebranded around the visual demo.
+
+## [visual-demo v1.0] - 2026-09-20
+- First release of the HellHound visual demo as Hellhound.exe (Windows, PyInstaller).
+- 256 virtual files, 5 kill-chain phases, live log/stats, 1-30x speed.
+- No-escape mode: no pause, Reset/Launch disabled mid-attack, window won't close until destruction.
+- Simulation only: no real files ever touched.
+
+---
 # HellHound Malware - Changelog
 
 All notable changes to the HellHound Educational Demonstration Tool are documented in this file.
