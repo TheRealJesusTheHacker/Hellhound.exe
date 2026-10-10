@@ -18,8 +18,8 @@ Requires: Python 3.7+, PyQt5 (pip install PyQt5)
 Run:  python hellhound_demo.py
 """
 
-import os
 import sys
+import threading
 import time
 import random
 from dataclasses import dataclass
@@ -163,7 +163,7 @@ class AttackEngine(QThread):
         self.targets = targets
         self.speed = 5
         self.do_encrypt = True
-        self._stop = False
+        self._stop_event = threading.Event()
 
     def set_speed(self, v):
         self.speed = max(1, v)
@@ -172,13 +172,13 @@ class AttackEngine(QThread):
         self.do_encrypt = bool(c)
 
     def request_stop(self):
-        self._stop = True
+        self._stop_event.set()
 
     def _wait(self, seconds):
         target = seconds / self.speed
         step = 0.02
         waited = 0.0
-        while waited < target and not self._stop:
+        while waited < target and not self._stop_event.is_set():
             time.sleep(min(step, target - waited))
             waited += step
 
@@ -202,7 +202,7 @@ class AttackEngine(QThread):
         self.phase_changed.emit(1)
         self._log(f"[SIM] Enumerating filesystem -- {n} files discovered", "#ffaa00")
         for i, t in enumerate(self.targets):
-            if self._stop:
+            if self._stop_event.is_set():
                 return
             t.status = "found"
             self.file_found.emit(i)
@@ -217,7 +217,7 @@ class AttackEngine(QThread):
             self.phase_changed.emit(2)
             self._log("[SIM] Encrypting files with AES-256 (simulated)...", "#ffaa00")
             for i, t in enumerate(self.targets):
-                if self._stop:
+                if self._stop_event.is_set():
                     return
                 t.status = "encrypted"
                 encrypted += 1
@@ -233,7 +233,7 @@ class AttackEngine(QThread):
         self._log("[SIM] Wiper phase: deleting files, purging shadow copies...",
                   "#ff5555")
         for i, t in enumerate(self.targets):
-            if self._stop:
+            if self._stop_event.is_set():
                 return
             t.status = "deleted"
             deleted += 1
