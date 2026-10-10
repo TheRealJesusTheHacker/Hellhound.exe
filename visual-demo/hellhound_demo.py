@@ -725,8 +725,23 @@ class MainWindow(QMainWindow):
 
     def reset_demo(self):
         if self.engine and self.engine.isRunning():
+            # Never block the GUI thread on the worker: stop it and finish
+            # the reset when the engine's finished signal arrives.
             self.engine.request_stop()
-            self.engine.wait(5000)
+            try:
+                self.engine.finished.disconnect(self._on_engine_stopped_reset)
+            except (TypeError, RuntimeError):
+                pass
+            self.engine.finished.connect(self._on_engine_stopped_reset)
+        else:
+            self._reset_state()
+            self._log_line("[i] Demo reset. Virtual filesystem restored.", "#55ff55")
+
+    def _on_engine_stopped_reset(self):
+        try:
+            self.engine.finished.disconnect(self._on_engine_stopped_reset)
+        except (TypeError, RuntimeError):
+            pass
         self._reset_state()
         self._log_line("[i] Demo reset. Virtual filesystem restored.", "#55ff55")
 
