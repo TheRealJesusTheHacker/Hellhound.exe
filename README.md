@@ -11,7 +11,7 @@ deleted. This is an educational stage, not a weapon.
 
 Grab **Hellhound.exe** from the
 [Releases page](https://github.com/TheRealJesusTheHacker/Hellhound.exe/releases).
-Windows build, packaged automatically with PyInstaller.
+Windows build, packaged automatically with PyInstaller — every release carries a signed build-provenance attestation.
 
 ## What it does
 
