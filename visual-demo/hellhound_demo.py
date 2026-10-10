@@ -152,9 +152,9 @@ class VirtualFS:
 class AttackEngine(QThread):
     phase_changed = pyqtSignal(int)
     log_line = pyqtSignal(str, str)            # text, color
-    file_found = pyqtSignal(int)               # index
-    file_encrypted = pyqtSignal(int)           # index
-    file_deleted = pyqtSignal(int)             # index
+    files_found = pyqtSignal(list)             # batched indices
+    files_encrypted = pyqtSignal(list)         # batched indices
+    files_deleted = pyqtSignal(list)           # batched indices
     stats_updated = pyqtSignal(int, int, int)  # deleted, encrypted, kb_destroyed
     attack_finished = pyqtSignal()
 
@@ -164,6 +164,8 @@ class AttackEngine(QThread):
         self.speed = 5
         self.do_encrypt = True
         self._stop_event = threading.Event()
+        self._last_flush = 0.0
+        self._last_stats = 0.0
 
     def set_speed(self, v):
         self.speed = max(1, v)
@@ -185,6 +187,29 @@ class AttackEngine(QThread):
     def _log(self, text, color="#c8c8c8"):
         self.log_line.emit(text, color)
 
+    # -- batching: at high speeds per-file signals would flood the GUI
+    # thread (~1,280 deliveries per run). Indices are collected and flushed
+    # as ranges; at speed <= 5 the batch size is 1 (per-file animation).
+    def _flush(self, pending, signal):
+        if pending:
+            signal.emit(list(pending))
+        return []
+
+    def _maybe_flush(self, pending, signal):
+        batch = 1 if self.speed <= 5 else 25
+        now = time.monotonic()
+        if len(pending) >= batch or (pending and now - self._last_flush >= 0.1):
+            self._last_flush = now
+            return self._flush(pending, signal)
+        return pending
+
+    def _emit_stats(self, deleted, encrypted, kb_destroyed, force=False):
+        # Stats repaint at most ~10 Hz; always flushed at phase boundaries.
+        now = time.monotonic()
+        if force or now - self._last_stats >= 0.1:
+            self._last_stats = now
+            self.stats_updated.emit(deleted, encrypted, kb_destroyed)
+
     def run(self):
         n = len(self.targets)
         deleted = encrypted = kb_destroyed = 0
@@ -201,14 +226,18 @@ class AttackEngine(QThread):
         # -- Phase 1: Recon --------------------------------------------
         self.phase_changed.emit(1)
         self._log(f"[SIM] Enumerating filesystem -- {n} files discovered", "#ffaa00")
+        pending = []
         for i, t in enumerate(self.targets):
             if self._stop_event.is_set():
+                self._flush(pending, self.files_found)
                 return
             t.status = "found"
-            self.file_found.emit(i)
+            pending.append(i)
             if i % 40 == 0:
                 self._log(f"    scanning {t.dirpath} ... {i}/{n}", "#888888")
+            pending = self._maybe_flush(pending, self.files_found)
             self._wait(0.030)
+        self._flush(pending, self.files_found)
         self._log(f"[+] Targets prioritized: documents, photos, backups ({n} files)",
                   "#55ff55")
 
@@ -216,34 +245,46 @@ class AttackEngine(QThread):
         if self.do_encrypt:
             self.phase_changed.emit(2)
             self._log("[SIM] Encrypting files with AES-256 (simulated)...", "#ffaa00")
+            pending = []
             for i, t in enumerate(self.targets):
                 if self._stop_event.is_set():
+                    self._flush(pending, self.files_encrypted)
+                    self._emit_stats(deleted, encrypted, kb_destroyed, force=True)
                     return
                 t.status = "encrypted"
                 encrypted += 1
-                self.file_encrypted.emit(i)
+                pending.append(i)
                 if i % 50 == 0:
                     self._log(f"    encrypted {i}/{n}", "#888888")
-                self.stats_updated.emit(deleted, encrypted, kb_destroyed)
+                self._emit_stats(deleted, encrypted, kb_destroyed)
+                pending = self._maybe_flush(pending, self.files_encrypted)
                 self._wait(0.025)
+            self._flush(pending, self.files_encrypted)
+            self._emit_stats(deleted, encrypted, kb_destroyed, force=True)
             self._log("[+] All files encrypted. Originals unrecoverable.", "#ff5555")
 
         # -- Phase 3: Deletion ------------------------------------------
         self.phase_changed.emit(3)
         self._log("[SIM] Wiper phase: deleting files, purging shadow copies...",
                   "#ff5555")
+        pending = []
         for i, t in enumerate(self.targets):
             if self._stop_event.is_set():
+                self._flush(pending, self.files_deleted)
+                self._emit_stats(deleted, encrypted, kb_destroyed, force=True)
                 return
             t.status = "deleted"
             deleted += 1
             kb_destroyed += t.size_kb
-            self.file_deleted.emit(i)
+            pending.append(i)
             if i % 40 == 0:
                 self._log(f"    deleted {i}/{n}  ({kb_destroyed // 1024} MB gone)",
                           "#ff5555")
-            self.stats_updated.emit(deleted, encrypted, kb_destroyed)
+            self._emit_stats(deleted, encrypted, kb_destroyed)
+            pending = self._maybe_flush(pending, self.files_deleted)
             self._wait(0.045)
+        self._flush(pending, self.files_deleted)
+        self._emit_stats(deleted, encrypted, kb_destroyed, force=True)
         self._log("[+] Filesystem wiped. Shadow copies purged.", "#ff5555")
 
         # -- Phase 4: Ransom note ---------------------------------------
@@ -624,12 +665,12 @@ class MainWindow(QMainWindow):
         self.engine.set_encrypt(self.encrypt_cb.isChecked())
         self.engine.phase_changed.connect(self._on_phase)
         self.engine.log_line.connect(self._log_line)
-        self.engine.file_found.connect(
-            lambda i: self._mark_item(i, "FOUND", "#ffaa00"))
-        self.engine.file_encrypted.connect(
-            lambda i: self._mark_item(i, "\U0001f512 ENCRYPTED", "#ff8800"))
-        self.engine.file_deleted.connect(
-            lambda i: self._mark_item(i, "DELETED", "#ff0000", strike=True))
+        self.engine.files_found.connect(
+            lambda idxs: self._mark_items(idxs, "FOUND", "#ffaa00"))
+        self.engine.files_encrypted.connect(
+            lambda idxs: self._mark_items(idxs, "\U0001f512 ENCRYPTED", "#ff8800"))
+        self.engine.files_deleted.connect(
+            lambda idxs: self._mark_items(idxs, "DELETED", "#ff0000", strike=True))
         self.engine.stats_updated.connect(self._on_stats)
         self.engine.attack_finished.connect(self._on_finished)
         self._start_time = time.time()
