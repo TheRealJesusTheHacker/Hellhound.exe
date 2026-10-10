@@ -381,6 +381,30 @@ class RansomDialog(QDialog):
 # Main window -- the scary demo console
 # ---------------------------------------------------------------------------
 class MainWindow(QMainWindow):
+    # Cached Qt objects for the hot _mark_item() path -- it runs hundreds of
+    # times per attack and must not allocate QColor/QBrush/QFont per call.
+    _BRUSH_CACHE = {}
+    _FONT_CACHE = {}
+
+    @staticmethod
+    def _brush_for(color):
+        brush = MainWindow._BRUSH_CACHE.get(color)
+        if brush is None:
+            brush = QBrush(QColor(color))
+            MainWindow._BRUSH_CACHE[color] = brush
+        return brush
+
+    @staticmethod
+    def _font_for(base, strike):
+        key = (base.family(), base.pointSize(), base.weight(),
+               base.italic(), strike)
+        font = MainWindow._FONT_CACHE.get(key)
+        if font is None:
+            font = QFont(base)
+            font.setStrikeOut(strike)
+            MainWindow._FONT_CACHE[key] = font
+        return font
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("HELLHOUND -- Deletion Virus Visual Demo")
@@ -598,26 +622,29 @@ class MainWindow(QMainWindow):
         for idx, t in enumerate(self.vfs.targets):
             if t.dirpath not in dir_nodes:
                 node = QTreeWidgetItem(self.tree, [t.dirpath, "", ""])
-                node.setForeground(0, QBrush(QColor("#ffaa00")))
+                node.setForeground(0, self._brush_for("#ffaa00"))
                 f = QFont("monospace", 11, QFont.Bold)
                 node.setFont(0, f)
                 node.setExpanded(True)
                 dir_nodes[t.dirpath] = node
             item = QTreeWidgetItem(dir_nodes[t.dirpath],
                                    [t.name, f"{t.size_kb} KB", "clean"])
-            item.setForeground(2, QBrush(QColor("#666666")))
+            item.setForeground(2, self._brush_for("#666666"))
             self._tree_items.append(item)
 
     def _mark_item(self, idx, status, color, strike=False):
         if 0 <= idx < len(self._tree_items):
             item = self._tree_items[idx]
             item.setText(2, status)
-            item.setForeground(2, QBrush(QColor(color)))
-            font = item.font(0)
-            font.setStrikeOut(strike)
+            item.setForeground(2, self._brush_for(color))
+            font = self._font_for(item.font(0), strike)
             item.setFont(0, font)
             item.setFont(1, font)
             item.setFont(2, font)
+
+    def _mark_items(self, idxs, status, color, strike=False):
+        for i in idxs:
+            self._mark_item(i, status, color, strike)
 
     # -- education panel ---------------------------------------------------
     def _set_phase_edu(self, phase_idx):
