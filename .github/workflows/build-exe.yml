@@ -10,6 +10,10 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
+      attestations: write
+      id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -26,6 +30,11 @@ jobs:
         run: |
           pyinstaller --noconfirm --onefile --windowed --name Hellhound --icon visual-demo/assets/hellhound.ico --add-data "visual-demo/assets/hellhound_logo.png;assets" visual-demo/hellhound_demo.py
 
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8  # v4
+        with:
+          subject-path: |
+            dist/Hellhound.exe
       - name: Attach Hellhound.exe to the release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
