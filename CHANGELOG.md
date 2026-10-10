@@ -1,5 +1,17 @@
 # Hellhound.exe - Changelog
 
+## [visual-demo v1.2] - 2026-10-10
+
+### Performance
+- Batched GUI signal delivery: ~1,280 per-run signal deliveries → ~12/11/11
+  per phase at 30× speed; stats repaints throttled to ~10 Hz
+- `QBrush`/`QFont` cached per file status instead of constructed per event
+- `reset_demo()` no longer blocks the GUI thread (5 s freeze eliminated)
+- Stop flag now a `threading.Event` (was a shared plain bool)
+
+### Build
+- Pinned `pyinstaller`, `PyQt5`, and GitHub Actions to exact versions/SHAs
+
 ## [visual-demo v1.1] - 2026-09-20
 - Hellhound's sign-off in blood-red terminal text at total destruction:
   "Hellhound Fetched Their souls. Hard drives will Rott in Hell. Goodbye My Pup."
