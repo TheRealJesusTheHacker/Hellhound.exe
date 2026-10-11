@@ -1,0 +1,27 @@
+name: Feature request
+description: Suggest an improvement to the HELLHOUND visual demo
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What should the demo do?
+      description: Describe the feature and which kill-chain phase it belongs to, if any.
+      placeholder: Add a phase pill for exfiltration...
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is it useful?
+      description: Who does it help — students, live-demo audiences, defenders?
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      description: The demo is a simulation with strict boundaries.
+      options:
+        - label: This request keeps the demo simulation-only and does not touch real files.
+          required: true

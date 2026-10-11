@@ -1,0 +1,41 @@
+name: Bug report
+description: Report a problem with the HELLHOUND visual demo
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, and what went wrong? Screenshots help.
+      placeholder: I clicked LAUNCH ATTACK and...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: dropdown
+    id: how-run
+    attributes:
+      label: How did you run the demo?
+      options:
+        - Hellhound.exe from Releases
+        - python visual-demo/hellhound_demo.py
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS and Python version (if running from source).
+      placeholder: Windows 11, Python 3.11
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      description: This project is an educational simulation. Confirm you understand the scope.
+      options:
+        - label: I understand the demo only operates on virtual files and this report is about the simulation, not real file damage.
+          required: true
