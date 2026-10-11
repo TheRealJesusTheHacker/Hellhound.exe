@@ -423,6 +423,12 @@ class RansomDialog(QDialog):
         self.timer_lbl.setText(f"{h:02d}:{m:02d}:{s:02d}")
         if self._seconds_left > 0:
             self._seconds_left -= 1
+        else:
+            # Countdown hit 00:00:00: stop the 1 Hz wakeups (label stays put).
+            # Safe here: the pre-timer _tick_timer() call in __init__ runs with
+            # _seconds_left = 72*3600, so this branch is never hit before
+            # self._qtimer exists.
+            self._qtimer.stop()
 
 
 # ---------------------------------------------------------------------------
