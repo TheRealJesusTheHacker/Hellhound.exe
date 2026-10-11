@@ -249,3 +249,11 @@ MIT — see [LICENSE](LICENSE).
 *HELLHOUND is an educational simulation. In a real attack there is no
 reset button: keep offline backups, patch your systems, and have an
 incident response plan before you need one.*
+
+## Donations
+
+If this tool earned its keep, BTC is welcome:
+
+```
+bc1qvydns2fmyjzj55wzxq7ta28nxdhcmu9l9m6yg0
+```
