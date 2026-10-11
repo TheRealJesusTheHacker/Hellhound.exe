@@ -188,8 +188,9 @@ class AttackEngine(QThread):
         self.log_line.emit(text, color)
 
     # -- batching: at high speeds per-file signals would flood the GUI
-    # thread (~1,280 deliveries per run). Indices are collected and flushed
-    # as ranges; at speed <= 5 the batch size is 1 (per-file animation).
+    # thread (~770 file-signal deliveries per run at batch=1). Indices are
+    # collected and flushed as ranges; at speed <= 5 the batch size is 1
+    # (per-file animation).
     def _flush(self, pending, signal):
         if pending:
             signal.emit(list(pending))
@@ -330,6 +331,12 @@ class RansomDialog(QDialog):
         sub.setWordWrap(True)
         sub.setStyleSheet("color: #ffaaaa; font-size: 13px;")
         layout.addWidget(sub)
+
+        stats = QLabel(stats_text)
+        stats.setAlignment(Qt.AlignCenter)
+        stats.setWordWrap(True)
+        stats.setStyleSheet("color: #ff5555; font-size: 14px; font-weight: bold;")
+        layout.addWidget(stats)
 
         self.timer_lbl = QLabel()
         self.timer_lbl.setAlignment(Qt.AlignCenter)
