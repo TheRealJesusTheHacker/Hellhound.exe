@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Hellhound.exe — visual demo
 
-## [Unreleased]
+## [1.3.0] - 2026-10-11
 
 ### Added
 - Headless test suite (`tests/`, pytest, `QT_QPA_PLATFORM=offscreen`) covering
@@ -25,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Attack stats now shown in the ransom dialog (previously computed but never
   displayed); stale GUI signal-count comment corrected.
 - README no longer claims a pause control that does not exist.
+
+### Changed
+- `build-exe.yml`: checkout no longer persists the git token
+  (`persist-credentials: false`) — the release build job needs only the API
+  token (release upload + build provenance attestation).
 
 ## [1.2.0] - 2026-10-10
 
@@ -112,7 +117,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/compare/visual-demo-v1.2...main
+[Unreleased]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/compare/visual-demo-v1.3...main
+[1.3.0]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/releases/tag/visual-demo-v1.3
 [1.2.0]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/releases/tag/visual-demo-v1.2
 [1.1.0]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/releases/tag/visual-demo-v1.1
 [1.0.0]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/releases/tag/visual-demo-v1.0
