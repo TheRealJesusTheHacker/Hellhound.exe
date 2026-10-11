@@ -38,7 +38,7 @@ deleted in the sim -- but it cannot reach real files. A yellow
 ## Run it
 
 ```bash
-pip install PyQt5
+pip install -r requirements.txt
 python hellhound_demo.py
 ```
 
@@ -49,3 +49,4 @@ walkthroughs (1x) or full runs in seconds (30x).
 
 - `hellhound_demo.py` -- the whole app, single file
 - `assets/hellhound_logo.png` -- the evil dog artwork (header, ransom note, window icon)
+- `assets/hellhound.ico` -- Windows icon for the built Hellhound.exe
