@@ -1,386 +1,119 @@
-# Hellhound.exe - Changelog
+# Changelog
 
-## [visual-demo v1.2] - 2026-10-10
+All notable changes to this project are documented in this file.
 
-### Performance
-- Batched GUI signal delivery: ~1,280 per-run signal deliveries → ~12/11/11
-  per phase at 30× speed; stats repaints throttled to ~10 Hz
-- `QBrush`/`QFont` cached per file status instead of constructed per event
-- `reset_demo()` no longer blocks the GUI thread (5 s freeze eliminated)
-- Stop flag now a `threading.Event` (was a shared plain bool)
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### Build
-- Pinned `pyinstaller`, `PyQt5`, and GitHub Actions to exact versions/SHAs
+---
 
-## [visual-demo v1.1] - 2026-09-20
+# Hellhound.exe — visual demo
+
+## [Unreleased]
+
+### Added
+- Headless test suite (`tests/`, pytest, `QT_QPA_PLATFORM=offscreen`) covering
+  the deterministic virtual filesystem, offscreen UI build, full kill-chain
+  run to completion, reset, and the intentional mid-attack close refusal.
+- `ci.yml` workflow: headless tests plus `ruff` and `black` checks on every
+  push and pull request (SHA-pinned actions).
+- Issue templates (bug report, feature request) and a pull-request template
+  with a simulation-only scope checklist.
+- `pyproject.toml` with `ruff`/`black` configuration.
+
+### Fixed
+- Attack stats now shown in the ransom dialog (previously computed but never
+  displayed); stale GUI signal-count comment corrected.
+- README no longer claims a pause control that does not exist.
+
+## [1.2.0] - 2026-10-10
+
+### Added
+- Build provenance attestation on the released `Hellhound.exe` artifact.
+- Dependabot (pip + GitHub Actions, weekly) and CodeQL scanning on push, PR,
+  and a weekly schedule.
+
+### Changed
+- Pinned `pyinstaller`, `PyQt5`, and GitHub Actions to exact versions/SHAs.
+- Reset no longer blocks the GUI thread — the engine is stopped via its
+  `finished` signal.
+- Stop flag is now a `threading.Event` (was a shared plain bool).
+
+### Fixed
+- Batched GUI signal delivery: ~1,280 per-run signal deliveries down to
+  ~12/11/11 per phase at 30× speed; stats repaints throttled to ~10 Hz.
+- `QBrush`/`QFont` cached per file status instead of constructed per event.
+
+## [1.1.0] - 2026-09-20
+
+### Added
 - Hellhound's sign-off in blood-red terminal text at total destruction:
   "Hellhound Fetched Their souls. Hard drives will Rott in Hell. Goodbye My Pup."
+
+### Changed
 - Repo renamed to Hellhound.exe; README rebranded around the visual demo.
 
-## [visual-demo v1.0] - 2026-09-20
-- First release of the HellHound visual demo as Hellhound.exe (Windows, PyInstaller).
-- 256 virtual files, 5 kill-chain phases, live log/stats, 1-30x speed.
-- No-escape mode: no pause, Reset/Launch disabled mid-attack, window won't close until destruction.
-- Simulation only: no real files ever touched.
+## [1.0.0] - 2026-09-20
 
----
-# HellHound Malware - Changelog
-
-All notable changes to the HellHound Educational Demonstration Tool are documented in this file.
-
-## [2.0] - 2026-07-04
-
-### ✨ Major Features Added
-
-#### Multi-Threading Architecture
-- Implemented `ThreadPoolExecutor` with 8 parallel worker threads
-- Thread-safe statistics collection using locks
-- **10-50x speed improvement** over single-threaded approach
-- Typical performance: **50-200+ files/second**
-- Demonstrates how real malware uses parallel processing
-
-#### Encryption Module (AES-256)
-- Added Fernet encryption (AES-128-CBC) for file encryption
-- Automatic encryption key generation and storage
-- Encrypts files before deletion (ransomware simulation)
-- Educational demonstration of destructive encryption tactics
-- Key stored in `hellhound_key.key` for analysis
-
-#### Dual Operation Modes
-- **Mode 1**: Deletion-only (fast file removal)
-- **Mode 2**: Encryption + Deletion (ransomware-style)
-- User-selectable at runtime
-- Different educational contexts for each mode
-
-#### JSON Report Generation
-- Automatic report creation after execution
-- Machine-readable statistics in `hellhound_report.json`
-- Includes:
-  - Execution timestamps
-  - File/directory deletion counts
-  - Data size destroyed/encrypted
-  - Performance metrics (execution time, deletion rate)
-  - Error tracking
-  - Educational context metadata
-
-#### Performance Metrics
-- Real-time deletion rate calculation (files/second)
-- Execution time tracking
-- Data volume statistics (human-readable sizes)
-- Error counting and logging
-- Per-file tracking with thread-safe aggregation
-
-### 🔧 Technical Improvements
-
-- Reduced `DELAY_BETWEEN_DELETIONS` from 0.001 to 0.0001 seconds
-- Optimized file discovery with pre-collection before threading
-- Thread-safe global statistics dictionary
-- Improved error handling in worker threads
-- Better resource management with context managers
-- Graceful interruption handling with JSON report on exit
-
-### 📚 Documentation
-
-- **README.md**: Complete overhaul with v2.0 features
-  - Threading architecture diagram
-  - Encryption flow documentation
-  - Performance benchmarks
-  - Report structure examples
-  - Dual mode explanations
-  - Configuration options for v2.0
-  - Troubleshooting section
-  - Updated reference links
-
-- **requirements.txt**: 
-  - Added `cryptography>=41.0.0` dependency
-  - Improved comments
-
-- **CHANGELOG.md**: 
-  - Created comprehensive changelog
-  - Version tracking
-  - Feature attribution
-
-### 🐛 Bug Fixes
-
-- Fixed potential race conditions in statistics updates
-- Improved error handling in threaded operations
-- Better handling of permission errors during parallel operations
-- Proper cleanup on keyboard interrupt with report generation
-- Thread-safe file size calculation
-- Correct aggregation of multiple directory results
-
-### ⚠️ Breaking Changes
-
-- Added required dependency: `cryptography>=41.0.0`
-- New configuration variables for threading and encryption:
-  - `MAX_WORKERS = 8`
-  - `ENCRYPTION_KEY_FILE`
-  - `REPORT_FILE`
-
-### 📊 Performance Improvements
-
-| Metric | v1.0 | v2.0 | Improvement |
-|--------|------|------|-------------|
-| Deletion Rate | 5-20 files/sec | 50-200 files/sec | **10-40x faster** |
-| 5000 Files | ~250 seconds | ~25 seconds | **10x faster** |
-| 1GB Data | ~50 seconds | ~5 seconds | **10x faster** |
-| Memory Usage | Constant | Constant (per worker) | Similar |
-| CPU Usage | Low | Medium (I/O bound) | Slight increase |
-
-### 🎓 Educational Enhancements
-
-- Demonstrates parallel malware processing
-- Shows ransomware encryption tactics
-- Illustrates performance optimization in malware
-- Educational JSON reports for analysis
-- Mode selection teaches attack planning
-- Real metrics for training purposes
-
-### 🔒 Security Notes
-
-- Encryption uses industry-standard Fernet (AES-128-CBC)
-- Key generation is cryptographically secure
-- No backdoors or weak encryption
-- Intentionally transparent for educational value
-- Not designed to be stealthy
+### Added
+- First release of the HELLHOUND visual demo as `Hellhound.exe`
+  (Windows, PyInstaller).
+- 256 virtual files across 8 fake system directories, 5 kill-chain phases
+  (infiltration, reconnaissance, encryption, deletion, ransom note).
+- Live terminal log, phase tracker, defense tips, kill stats, 1–30× speed
+  control, ransomware-mode toggle.
+- No-escape mode: no pause button, Reset/Launch disabled mid-attack, window
+  refuses to close until destruction is complete.
+- Simulation only: no real files ever read, encrypted, or deleted.
 
 ---
 
-## [1.0] - 2026-04-02
+# HellHound Malware — educational tool
 
-### ✨ Initial Release Features
+## [2.0.0] - 2026-07-04
 
-#### Core Functionality
-- Cross-platform file deletion support:
-  - Windows: Temp, Downloads, Desktop, Recent
-  - Linux/macOS: /tmp, .cache, Trash
-- Real-time visual logging with colored output
-- Platform detection and path adaptation
-- Directory traversal and cleanup
+### Added
+- Multi-threading architecture: `ThreadPoolExecutor` with 8 parallel worker
+  threads, thread-safe statistics collection, 10–50× speed improvement over
+  single-threaded (typical 50–200+ files/second).
+- Encryption module (Fernet/AES-128-CBC): automatic key generation stored in
+  `hellhound_key.key`; encrypts files before deletion (ransomware simulation).
+- Dual operation modes: deletion-only or encryption + deletion, selectable at
+  runtime.
+- JSON report generation (`hellhound_report.json`) with timestamps, counts,
+  data volume, performance metrics, error tracking, and educational metadata.
+- Real-time deletion rate, execution time tracking, and human-readable data
+  volume statistics.
 
-#### Safety Features
-- Explicit user confirmation required (type "YES")
-- `MAX_FILES_LIMIT` (5000) to prevent system overload
-- Configurable delay between deletions
-- Graceful error handling:
-  - Permission errors
-  - File not found errors
-  - General OS errors
+### Changed
+- `DELAY_BETWEEN_DELETIONS` reduced from 0.001 to 0.0001 seconds.
+- Optimized file discovery with pre-collection before threading; improved
+  error handling and graceful interrupt handling with JSON report on exit.
+- README overhauled with threading architecture diagram, encryption flow,
+  performance benchmarks, report structure examples, and troubleshooting.
+- `requirements.txt`: added `cryptography>=41.0.0` dependency.
 
-#### User Interface
-- Professional HellHound infection message display
-- Colored terminal output for visibility
-- Progress tracking and logging
-- Detailed execution summary
-- Statistics reporting:
-  - Files deleted count
-  - Directories removed count
-  - Platform information
-  - Execution timestamp
+### Fixed
+- Race conditions in statistics updates, permission-error handling during
+  parallel operations, thread-safe file size calculation, correct aggregation
+  of multiple directory results.
 
-#### Educational Documentation
-- Comprehensive README.md with:
-  - Features list
-  - Requirements
-  - Installation instructions
-  - Usage guide
-  - Target directories explained
-  - Configuration options
-  - Security implications
-  - Mitigation strategies
-  - Academic references
-  - MIT License
+## [1.0.0] - 2026-04-02
 
-#### Code Quality
-- Well-documented functions with docstrings
-- Clear variable naming
-- Error handling for common scenarios
-- Modular function design
-- Clean separation of concerns
-
-### 📋 Project Structure
-
-```
-HellHound-Malware/
-├── HellHound.py          # Main executable
-├── README.md             # Documentation
-├── requirements.txt      # Dependencies
-└── LICENSE              # MIT License
-```
-
-### 🎯 Educational Value (v1.0)
-
-- Demonstrates destructive malware behavior
-- Shows file system traversal techniques
-- Illustrates ransomware impact
-- Cross-platform attack methodology
-- Why stealthy malware is dangerous
-- Importance of backups and monitoring
-
-### ⚡ Performance (v1.0)
-
-- Deletion rate: 5-20 files/second
-- Memory usage: Minimal
-- CPU usage: Low (I/O bound)
-- Single-threaded processing
-- No external dependencies (initially)
-
-### 🔧 Configuration (v1.0)
-
-```python
-LOG_FREQUENCY = 50              # Log every N deletions
-MAX_FILES_LIMIT = 5000          # Maximum files to process
-DELAY_BETWEEN_DELETIONS = 0.001 # 1ms delay for visual effect
-```
+### Added
+- Cross-platform file deletion (Windows: Temp/Downloads/Desktop/Recent;
+  Linux/macOS: /tmp, .cache, Trash) with real-time colored visual logging.
+- Explicit user confirmation ("YES"), `MAX_FILES_LIMIT` (5000), configurable
+  delay between deletions, graceful error handling.
+- Execution summary: files deleted count, directories removed, platform info,
+  execution timestamp.
+- Full educational documentation: features, installation, usage, target
+  directories, security implications, mitigation strategies, references.
 
 ---
 
-## Planned Features (Future Versions)
-
-### v2.1 (Planned)
-- [ ] Process/Service termination module
-- [ ] Windows Registry manipulation
-- [ ] Shadow Copy (VSS) deletion
-- [ ] Configuration file support (YAML/JSON)
-
-### v3.0 (Planned)
-- [ ] Network spreading module
-- [ ] Persistence mechanisms
-- [ ] GUI dashboard with real-time monitoring
-- [ ] HTML report generation
-- [ ] Advanced logging with timestamps per file
-
-### v4.0+ (Future)
-- [ ] Cloud storage targeting
-- [ ] Email exfiltration simulation
-- [ ] Advanced anti-forensics
-- [ ] Machine learning optimization
-- [ ] Plugin system for modules
-
----
-
-## Known Limitations
-
-### v1.0 & v2.0
-
-- Single system targeting (no network spread)
-- No persistence mechanisms
-- Not designed for stealth (intentional)
-- Requires administrative privileges
-- Limited to user-accessible directories
-- No recovery/restoration capabilities
-
-### Operating System Specific
-
-**Windows**
-- Requires Administrator rights
-- Cannot delete system-protected files
-- VSS (Volume Shadow Copies) not deleted
-
-**Linux/macOS**
-- Requires root or appropriate permissions
-- Cannot delete system-critical directories without escalation
-- Limited to user home directory and /tmp
-
----
-
-## Deprecations
-
-### Removed in v2.0
-- No breaking removals; v1.0 functionality preserved
-
-### Deprecated (to be removed)
-- None currently
-
----
-
-## Migration Guide
-
-### Upgrading from v1.0 to v2.0
-
-1. **Update Python package**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **New Dependencies**
-   - Requires: `cryptography>=41.0.0`
-
-3. **New Configuration Variables**
-   - `MAX_WORKERS = 8` - Adjust thread count if needed
-   - `ENCRYPTION_KEY_FILE` - Location for encryption keys
-   - `REPORT_FILE` - JSON report output location
-
-4. **New Features Usage**
-   - Select mode 2 for encryption functionality
-   - Check generated JSON reports for metrics
-   - Configure `MAX_WORKERS` for your system
-
-5. **Backward Compatibility**
-   - v1.0 code is still supported
-   - Mode 1 provides single-threaded deletion
-   - All v1.0 features remain functional
-
----
-
-## Development Timeline
-
-| Version | Release Date | Status | Major Feature |
-|---------|------------|--------|---------------|
-| 1.0 | 2026-04-02 | Stable | Core deletion |
-| 2.0 | 2026-07-04 | Stable | Threading + Encryption |
-| 2.1 | TBD | Planned | Registry + Processes |
-| 3.0 | TBD | Planned | GUI + Reporting |
-
----
-
-## Contributing
-
-Contributions are welcome! Areas for improvement:
-
-- Additional platform support (BSD, Solaris)
-- Performance optimizations
-- Educational content improvements
-- Documentation enhancements
-- Bug fixes
-- Test suite development
-
-See README.md for contribution guidelines.
-
----
-
-## Authors & Contributors
-
-### v2.0
-- **thedarkonejesus** - Core v2.0 development (Threading, Encryption, Reporting)
-
-### v1.0
-- **thedarkonejesus** - Initial development
-
----
-
-## License
-
-All versions released under MIT License. See LICENSE file for details.
-
----
-
-## Acknowledgments
-
-- Python cryptography library team
-- ThreadPoolExecutor documentation
-- MITRE ATT&CK Framework
-- CIS Security
-- Educational cybersecurity community
-
----
-
-## Contact
-
-For questions, suggestions, or bug reports:
-- GitHub Issues: https://github.com/thedarkonejesus/HellHound-Malware/issues
-- GitHub Discussions: https://github.com/thedarkonejesus/HellHound-Malware/discussions
-
----
-
-**Last Updated**: 2026-07-04 | **Current Version**: 2.0 | **Status**: Active Development
+[Unreleased]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/compare/visual-demo-v1.2...main
+[1.2.0]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/releases/tag/visual-demo-v1.2
+[1.1.0]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/releases/tag/visual-demo-v1.1
+[1.0.0]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/releases/tag/visual-demo-v1.0
+[2.0.0]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/tree/main
