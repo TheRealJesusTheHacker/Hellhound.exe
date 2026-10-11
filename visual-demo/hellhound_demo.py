@@ -28,11 +28,22 @@ from pathlib import Path
 from PyQt5.QtCore import Qt, QThread, QTimer, pyqtSignal
 from PyQt5.QtGui import QColor, QFont, QBrush, QPixmap, QIcon
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QTreeWidget, QTreeWidgetItem, QTextEdit,
-    QSlider, QCheckBox, QProgressBar, QSplitter, QDialog,
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
+    QLabel,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QTextEdit,
+    QSlider,
+    QCheckBox,
+    QProgressBar,
+    QSplitter,
+    QDialog,
 )
-
 
 # ---------------------------------------------------------------------------
 # Assets (evil dog graphics live next to this script in assets/).
@@ -48,8 +59,7 @@ def load_logo(size):
     if LOGO_PATH.is_file():
         pm = QPixmap(str(LOGO_PATH))
         if not pm.isNull():
-            return pm.scaled(size, size, Qt.KeepAspectRatio,
-                             Qt.SmoothTransformation)
+            return pm.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
     return None
 
 
@@ -57,41 +67,51 @@ def load_logo(size):
 # Educational content per attack phase
 # ---------------------------------------------------------------------------
 PHASES = [
-    ("INFILTRATION",
-     "What you're seeing: the payload lands on the machine -- usually via a "
-     "phishing attachment, a trojanized download, or an infected USB drive. "
-     "It quietly establishes persistence so it survives a reboot.",
-     "How to stop it: email filtering, never run untrusted attachments or "
-     "macros, keep software patched, disable autorun for removable media."),
-    ("RECONNAISSANCE",
-     "What you're seeing: the virus surveys the filesystem -- mapping drives, "
-     "listing documents, pictures, and backups. It prioritizes valuable file "
-     "types (.docx, .xlsx, .pdf, photos, databases) and notes backup locations "
-     "to destroy later.",
-     "How to stop it: least-privilege accounts (malware inherits YOUR "
-     "permissions), EDR tools that flag mass file enumeration, and keeping "
-     "backups offline or immutable so recon can't find them."),
-    ("ENCRYPTION",
-     "What you're seeing: files are encrypted in place (real ransomware uses "
-     "AES-256). The originals become unreadable without the attacker's key. "
-     "This happens BEFORE deletion so victims can't just undelete.",
-     "How to stop it: offline / immutable backups (the 3-2-1 rule), "
-     "application allowlisting, and behavioral detection that catches mass "
-     "encryption early."),
-    ("DELETION",
-     "What you're seeing: the wiper phase. Files are deleted outright and "
-     "shadow copies / recycle bins are purged so recovery tools find nothing. "
-     "Wipers don't even want ransom -- just destruction.",
-     "How to stop it: immutable backups that can't be deleted by the OS, "
-     "network segmentation to contain the blast radius, and a tested incident "
-     "response plan."),
-    ("RANSOM NOTE",
-     "What you're seeing: the payoff demand. A note appears with payment "
-     "instructions and a countdown timer to pressure the victim into paying "
-     "before thinking.",
-     "How to stop it: never pay -- decryption is not guaranteed and payment "
-     "funds the next attack. Restore from clean backups, report to law "
-     "enforcement, and have an incident response plan BEFORE you need one."),
+    (
+        "INFILTRATION",
+        "What you're seeing: the payload lands on the machine -- usually via a "
+        "phishing attachment, a trojanized download, or an infected USB drive. "
+        "It quietly establishes persistence so it survives a reboot.",
+        "How to stop it: email filtering, never run untrusted attachments or "
+        "macros, keep software patched, disable autorun for removable media.",
+    ),
+    (
+        "RECONNAISSANCE",
+        "What you're seeing: the virus surveys the filesystem -- mapping drives, "
+        "listing documents, pictures, and backups. It prioritizes valuable file "
+        "types (.docx, .xlsx, .pdf, photos, databases) and notes backup locations "
+        "to destroy later.",
+        "How to stop it: least-privilege accounts (malware inherits YOUR "
+        "permissions), EDR tools that flag mass file enumeration, and keeping "
+        "backups offline or immutable so recon can't find them.",
+    ),
+    (
+        "ENCRYPTION",
+        "What you're seeing: files are encrypted in place (real ransomware uses "
+        "AES-256). The originals become unreadable without the attacker's key. "
+        "This happens BEFORE deletion so victims can't just undelete.",
+        "How to stop it: offline / immutable backups (the 3-2-1 rule), "
+        "application allowlisting, and behavioral detection that catches mass "
+        "encryption early.",
+    ),
+    (
+        "DELETION",
+        "What you're seeing: the wiper phase. Files are deleted outright and "
+        "shadow copies / recycle bins are purged so recovery tools find nothing. "
+        "Wipers don't even want ransom -- just destruction.",
+        "How to stop it: immutable backups that can't be deleted by the OS, "
+        "network segmentation to contain the blast radius, and a tested incident "
+        "response plan.",
+    ),
+    (
+        "RANSOM NOTE",
+        "What you're seeing: the payoff demand. A note appears with payment "
+        "instructions and a countdown timer to pressure the victim into paying "
+        "before thinking.",
+        "How to stop it: never pay -- decryption is not guaranteed and payment "
+        "funds the next attack. Restore from clean backups, report to law "
+        "enforcement, and have an incident response plan BEFORE you need one.",
+    ),
 ]
 
 
@@ -100,10 +120,10 @@ PHASES = [
 # ---------------------------------------------------------------------------
 @dataclass
 class Target:
-    dirpath: str        # display path (e.g. C:\Users\Victim\Documents)
+    dirpath: str  # display path (e.g. C:\Users\Victim\Documents)
     name: str
     size_kb: int
-    status: str = "clean"   # clean -> found -> encrypted -> deleted
+    status: str = "clean"  # clean -> found -> encrypted -> deleted
 
 
 DIR_BLUEPRINT = {
@@ -117,9 +137,25 @@ DIR_BLUEPRINT = {
     "D:\\Projects": [("py", 14), ("db", 4), ("md", 8)],
 }
 
-NAME_WORDS = ["report", "invoice", "photo", "backup", "project", "data",
-              "notes", "budget", "contract", "presentation", "archive",
-              "database", "config", "draft", "final", "summer", "client"]
+NAME_WORDS = [
+    "report",
+    "invoice",
+    "photo",
+    "backup",
+    "project",
+    "data",
+    "notes",
+    "budget",
+    "contract",
+    "presentation",
+    "archive",
+    "database",
+    "config",
+    "draft",
+    "final",
+    "summer",
+    "client",
+]
 
 
 def generate_target_list(rng_seed=1337):
@@ -151,10 +187,10 @@ class VirtualFS:
 # ---------------------------------------------------------------------------
 class AttackEngine(QThread):
     phase_changed = pyqtSignal(int)
-    log_line = pyqtSignal(str, str)            # text, color
-    files_found = pyqtSignal(list)             # batched indices
-    files_encrypted = pyqtSignal(list)         # batched indices
-    files_deleted = pyqtSignal(list)           # batched indices
+    log_line = pyqtSignal(str, str)  # text, color
+    files_found = pyqtSignal(list)  # batched indices
+    files_encrypted = pyqtSignal(list)  # batched indices
+    files_deleted = pyqtSignal(list)  # batched indices
     stats_updated = pyqtSignal(int, int, int)  # deleted, encrypted, kb_destroyed
     attack_finished = pyqtSignal()
 
@@ -239,8 +275,7 @@ class AttackEngine(QThread):
             pending = self._maybe_flush(pending, self.files_found)
             self._wait(0.030)
         self._flush(pending, self.files_found)
-        self._log(f"[+] Targets prioritized: documents, photos, backups ({n} files)",
-                  "#55ff55")
+        self._log(f"[+] Targets prioritized: documents, photos, backups ({n} files)", "#55ff55")
 
         # -- Phase 2: Encryption (optional) -----------------------------
         if self.do_encrypt:
@@ -266,8 +301,7 @@ class AttackEngine(QThread):
 
         # -- Phase 3: Deletion ------------------------------------------
         self.phase_changed.emit(3)
-        self._log("[SIM] Wiper phase: deleting files, purging shadow copies...",
-                  "#ff5555")
+        self._log("[SIM] Wiper phase: deleting files, purging shadow copies...", "#ff5555")
         pending = []
         for i, t in enumerate(self.targets):
             if self._stop_event.is_set():
@@ -279,8 +313,7 @@ class AttackEngine(QThread):
             kb_destroyed += t.size_kb
             pending.append(i)
             if i % 40 == 0:
-                self._log(f"    deleted {i}/{n}  ({kb_destroyed // 1024} MB gone)",
-                          "#ff5555")
+                self._log(f"    deleted {i}/{n}  ({kb_destroyed // 1024} MB gone)", "#ff5555")
             self._emit_stats(deleted, encrypted, kb_destroyed)
             pending = self._maybe_flush(pending, self.files_deleted)
             self._wait(0.045)
@@ -293,6 +326,7 @@ class AttackEngine(QThread):
         self._log("[SIM] Dropping ransom note: READ_ME_TO_RECOVER.txt", "#ffaa00")
         self._wait(0.6)
         self.attack_finished.emit()
+
 
 # ---------------------------------------------------------------------------
 # Ransom note dialog -- pops at the end of the attack
@@ -325,8 +359,10 @@ class RansomDialog(QDialog):
         title.setStyleSheet("color: #ff0000; letter-spacing: 2px;")
         layout.addWidget(title)
 
-        sub = QLabel("Every document, photo, and backup on this machine has been\n"
-                     "encrypted with AES-256 and then wiped. Shadow copies purged.")
+        sub = QLabel(
+            "Every document, photo, and backup on this machine has been\n"
+            "encrypted with AES-256 and then wiped. Shadow copies purged."
+        )
         sub.setAlignment(Qt.AlignCenter)
         sub.setWordWrap(True)
         sub.setStyleSheet("color: #ffaaaa; font-size: 13px;")
@@ -348,8 +384,10 @@ class RansomDialog(QDialog):
         self._qtimer.timeout.connect(self._tick_timer)
         self._qtimer.start(1000)
 
-        pay = QLabel("Send 2.5 BTC to the address below within 72 hours\n"
-                     "or the decryption key is destroyed forever.")
+        pay = QLabel(
+            "Send 2.5 BTC to the address below within 72 hours\n"
+            "or the decryption key is destroyed forever."
+        )
         pay.setAlignment(Qt.AlignCenter)
         pay.setWordWrap(True)
         pay.setStyleSheet("color: #ffcc66; font-size: 13px;")
@@ -360,8 +398,10 @@ class RansomDialog(QDialog):
         addr.setStyleSheet("color: #888888; font-family: monospace; font-size: 12px;")
         layout.addWidget(addr)
 
-        sim = QLabel("EDUCATIONAL SIMULATION -- no real files were harmed.\n"
-                     "In a real attack there is no reset button.")
+        sim = QLabel(
+            "EDUCATIONAL SIMULATION -- no real files were harmed.\n"
+            "In a real attack there is no reset button."
+        )
         sim.setAlignment(Qt.AlignCenter)
         sim.setWordWrap(True)
         sim.setStyleSheet("color: #666666; font-size: 11px; font-style: italic;")
@@ -371,7 +411,8 @@ class RansomDialog(QDialog):
         close_btn.setStyleSheet(
             "QPushButton { background-color: #330000; color: #ff5555; "
             "border: 1px solid #ff0000; padding: 8px; font-weight: bold; }"
-            "QPushButton:hover { background-color: #550000; }")
+            "QPushButton:hover { background-color: #550000; }"
+        )
         close_btn.clicked.connect(self.accept)
         layout.addWidget(close_btn)
 
@@ -403,8 +444,7 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _font_for(base, strike):
-        key = (base.family(), base.pointSize(), base.weight(),
-               base.italic(), strike)
+        key = (base.family(), base.pointSize(), base.weight(), base.italic(), strike)
         font = MainWindow._FONT_CACHE.get(key)
         if font is None:
             font = QFont(base)
@@ -498,20 +538,21 @@ class MainWindow(QMainWindow):
 
         self.sim_badge = QLabel("  \u26a0 SIMULATION \u26a0  ")
         self.sim_badge.setFont(QFont("Arial", 13, QFont.Bold))
-        self.sim_badge.setStyleSheet(
-            "background-color: #ffcc00; color: #000000; padding: 8px;")
+        self.sim_badge.setStyleSheet("background-color: #ffcc00; color: #000000; padding: 8px;")
         header.addWidget(self.sim_badge, alignment=Qt.AlignTop)
         root.addLayout(header)
 
         # Warning strip
         warn = QLabel(
             "\u26a0 EDUCATIONAL DEMONSTRATION \u2014 all files shown are VIRTUAL. "
-            "Nothing on this machine is being read, encrypted, or deleted. \u26a0")
+            "Nothing on this machine is being read, encrypted, or deleted. \u26a0"
+        )
         warn.setWordWrap(True)
         warn.setAlignment(Qt.AlignCenter)
         warn.setStyleSheet(
             "background-color: #2a1a00; color: #ffcc00; padding: 6px; "
-            "border: 1px solid #ffcc00; font-weight: bold; font-size: 12px;")
+            "border: 1px solid #ffcc00; font-weight: bold; font-size: 12px;"
+        )
         root.addWidget(warn)
 
         # Phase tracker pills
@@ -523,7 +564,8 @@ class MainWindow(QMainWindow):
             pill.setFont(QFont("Arial", 10, QFont.Bold))
             pill.setStyleSheet(
                 "background-color: #1a1a1a; color: #666666; padding: 6px 4px; "
-                "border: 1px solid #333333;")
+                "border: 1px solid #333333;"
+            )
             tracker.addWidget(pill)
             self.phase_pills.append(pill)
         tracker.addStretch(1)
@@ -531,8 +573,7 @@ class MainWindow(QMainWindow):
 
         # Education panel
         edu = QWidget()
-        edu.setStyleSheet(
-            "background-color: #0d0d0d; border: 1px solid #440000;")
+        edu.setStyleSheet("background-color: #0d0d0d; border: 1px solid #440000;")
         edu_layout = QVBoxLayout(edu)
         self.edu_seeing = QLabel()
         self.edu_seeing.setWordWrap(True)
@@ -580,7 +621,8 @@ class MainWindow(QMainWindow):
         self.launch_btn.setStyleSheet(
             "QPushButton { background-color: #660000; color: #ffffff; "
             "border: 2px solid #ff0000; padding: 10px 18px; font-size: 15px; }"
-            "QPushButton:hover { background-color: #990000; }")
+            "QPushButton:hover { background-color: #990000; }"
+        )
         self.launch_btn.clicked.connect(self.start_attack)
         controls.addWidget(self.launch_btn)
 
@@ -634,8 +676,7 @@ class MainWindow(QMainWindow):
                 node.setFont(0, f)
                 node.setExpanded(True)
                 dir_nodes[t.dirpath] = node
-            item = QTreeWidgetItem(dir_nodes[t.dirpath],
-                                   [t.name, f"{t.size_kb} KB", "clean"])
+            item = QTreeWidgetItem(dir_nodes[t.dirpath], [t.name, f"{t.size_kb} KB", "clean"])
             item.setForeground(2, self._brush_for("#666666"))
             self._tree_items.append(item)
 
@@ -659,15 +700,18 @@ class MainWindow(QMainWindow):
             if i == phase_idx:
                 pill.setStyleSheet(
                     "background-color: #660000; color: #ffffff; padding: 6px 4px; "
-                    "border: 2px solid #ff0000;")
+                    "border: 2px solid #ff0000;"
+                )
             elif 0 <= phase_idx and i < phase_idx:
                 pill.setStyleSheet(
                     "background-color: #2a0000; color: #ff6666; padding: 6px 4px; "
-                    "border: 1px solid #660000;")
+                    "border: 1px solid #660000;"
+                )
             else:
                 pill.setStyleSheet(
                     "background-color: #1a1a1a; color: #666666; padding: 6px 4px; "
-                    "border: 1px solid #333333;")
+                    "border: 1px solid #333333;"
+                )
         if 0 <= phase_idx < len(PHASES):
             name, seeing, defense = PHASES[phase_idx]
             self.edu_seeing.setText(f"\u25b6  <b>{seeing}</b>")
@@ -675,9 +719,11 @@ class MainWindow(QMainWindow):
         else:
             self.edu_seeing.setText(
                 "\u25b6  Press LAUNCH ATTACK to watch a simulated "
-                "deletion virus work through its kill chain -- safely, on virtual files.")
+                "deletion virus work through its kill chain -- safely, on virtual files."
+            )
             self.edu_defense.setText(
-                "\u2714  Each phase explains how defenders stop the real thing.")
+                "\u2714  Each phase explains how defenders stop the real thing."
+            )
 
     # -- controls ----------------------------------------------------------
     def _on_speed(self, v):
@@ -699,12 +745,13 @@ class MainWindow(QMainWindow):
         self.engine.set_encrypt(self.encrypt_cb.isChecked())
         self.engine.phase_changed.connect(self._on_phase)
         self.engine.log_line.connect(self._log_line)
-        self.engine.files_found.connect(
-            lambda idxs: self._mark_items(idxs, "FOUND", "#ffaa00"))
+        self.engine.files_found.connect(lambda idxs: self._mark_items(idxs, "FOUND", "#ffaa00"))
         self.engine.files_encrypted.connect(
-            lambda idxs: self._mark_items(idxs, "\U0001f512 ENCRYPTED", "#ff8800"))
+            lambda idxs: self._mark_items(idxs, "\U0001f512 ENCRYPTED", "#ff8800")
+        )
         self.engine.files_deleted.connect(
-            lambda idxs: self._mark_items(idxs, "DELETED", "#ff0000", strike=True))
+            lambda idxs: self._mark_items(idxs, "DELETED", "#ff0000", strike=True)
+        )
         self.engine.stats_updated.connect(self._on_stats)
         self.engine.attack_finished.connect(self._on_finished)
         self._start_time = time.time()
@@ -756,8 +803,9 @@ class MainWindow(QMainWindow):
         # There is no shutting it down mid-attack. It runs until destruction.
         if self.engine and self.engine.isRunning():
             event.ignore()
-            self._log_line("[!] You can't close HellHound. "
-                           "It finishes what it started.", "#ff0000")
+            self._log_line(
+                "[!] You can't close HellHound. " "It finishes what it started.", "#ff0000"
+            )
             return
         event.accept()
 
@@ -787,8 +835,9 @@ class MainWindow(QMainWindow):
         self.reset_btn.setEnabled(True)
         self.encrypt_cb.setEnabled(True)
         self.launch_btn.setEnabled(True)
-        stats_text = (f"{self.stat_deleted.text()} files deleted, "
-                      f"{self.stat_data.text()} destroyed")
+        stats_text = (
+            f"{self.stat_deleted.text()} files deleted, " f"{self.stat_data.text()} destroyed"
+        )
         self._log_line("", "#ff0000")
         self._log_line("Hellhound Fetched Their souls.", "#ff0000")
         self._log_line("Hard drives will Rott in Hell.", "#ff0000")
