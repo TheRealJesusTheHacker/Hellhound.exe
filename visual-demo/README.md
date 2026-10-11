@@ -17,7 +17,7 @@ A PyQt5 app that walks an audience through a malware kill chain on a
 Every phase narrates **what you're seeing** and **how to stop it** (defense
 tips), with a live terminal-style attack log, file tree that marks files
 FOUND → ENCRYPTED → DELETED (struck through in red), live stats (files
-deleted, data destroyed, deletion rate), speed control (1–30x), pause, and
+deleted, data destroyed, deletion rate), speed control (1–30x), and
 reset.
 
 ## No escape
