@@ -50,3 +50,7 @@ walkthroughs (1x) or full runs in seconds (30x).
 - `hellhound_demo.py` -- the whole app, single file
 - `assets/hellhound_logo.png` -- the evil dog artwork (header, ransom note, window icon)
 - `assets/hellhound.ico` -- Windows icon for the built Hellhound.exe
+
+## License
+
+MIT — this demo is covered by the repository's [LICENSE](../LICENSE).
