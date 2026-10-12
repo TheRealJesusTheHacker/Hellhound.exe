@@ -75,6 +75,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # HellHound Malware — educational tool
 
+## [Unreleased]
+
+### Fixed
+- `encrypt_file` now catches `MemoryError` alongside `Exception`: a file
+  larger than available RAM used to escape every handler as an uncaught
+  BaseException and kill the whole run. The file is skipped and counted in
+  `stats["errors"]`; data-safe (encryption fails before any write/remove).
+- `load_encryption_key` validates a stored key with `Fernet(key)` instead of
+  crashing on a corrupt `hellhound_key.key`: the key file is NOT overwritten,
+  the user is told to delete it to generate a fresh one, and encryption mode
+  refuses cleanly without touching any files.
+
 ## [2.0.0] - 2026-07-04
 
 ### Added
