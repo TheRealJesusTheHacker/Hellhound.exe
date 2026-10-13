@@ -78,10 +78,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- `encrypt_file` now catches `MemoryError` alongside `Exception`: a file
-  larger than available RAM used to escape every handler as an uncaught
-  BaseException and kill the whole run. The file is skipped and counted in
-  `stats["errors"]`; data-safe (encryption fails before any write/remove).
+- `encrypt_file` catches `MemoryError` alongside `Exception`: the explicit
+  name documents the case that matters — a file larger than available RAM
+  raises it in `f.read()`. (Correction: `MemoryError` is a subclass of
+  `Exception`, so the previous `except Exception` handler already caught
+  it; this entry originally misdescribed it as an escaping BaseException.)
+  The file is skipped and counted in `stats["errors"]`; data-safe
+  (encryption fails before any write/remove).
+- `delete_system_files` now sets `stats["end_time"]` on the
+  no-target-directories early return, so the execution summary and JSON
+  report no longer show a null end time on that path.
+- Removed unused imports (`shutil`, `glob`, `pathlib.Path`) from
+  `HellHound.py`.
+- Ctrl+C now stops a run promptly: queued files in the current directory
+  are cancelled instead of being deleted while the thread pool drains
+  (previously every submitted file — up to the 5,000-file cap — was still
+  processed after the interrupt, before the "interrupted" report).
+- `main()` announces the exact target directories before the 'YES'
+  confirmation prompt, so consent is given against the real scope instead
+  of each directory being named only as its processing begins.
 - `load_encryption_key` validates a stored key with `Fernet(key)` instead of
   crashing on a corrupt `hellhound_key.key`: the key file is NOT overwritten,
   the user is told to delete it to generate a fresh one, and encryption mode
