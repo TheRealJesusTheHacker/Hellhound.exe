@@ -102,6 +102,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the user is told to delete it to generate a fresh one, and encryption mode
   refuses cleanly without touching any files.
 
+### Changed
+- Performance pass on the deletion engine (no behavior or signature
+  changes; verified by before/after benchmarks on synthetic trees plus
+  parity and Ctrl+C harnesses):
+  - The per-file acceptance check is a single `lstat` instead of three
+    stat calls (`isfile` + `islink` + `getsize`); `encrypt_file` likewise
+    uses one `stat` instead of `isfile()` + `getsize()`. The set of files
+    accepted/skipped — symlinks never followed or deleted — is unchanged.
+  - Futures are submitted in a bounded window (`MAX_WORKERS * 4`) instead
+    of one per file up front: peak memory on a 25,000-file run dropped
+    from ~78 MB to ~26 MB, and Ctrl+C has at most a windowful of queued
+    files to cancel. Progress announcements and totals are unchanged.
+  - Thread pool widened 8 → 16 workers (deletion is I/O-latency-bound;
+    ~40% faster on the benchmark tree, 32 workers was no better).
+  - Empty-directory cleanup attempts `rmdir` directly instead of listing
+    every directory first (rmdir only succeeds when empty).
+  - Net effect on the benchmark trees: 5,000-file delete ~2.6 s → ~1.1 s;
+    25,000-file delete ~7.4 s → ~3.5 s; encrypt+delete of 1,000 × 64 KiB
+    files ~4.3 s → ~2.9 s.
+
 ## [2.0.0] - 2026-07-04
 
 ### Added
