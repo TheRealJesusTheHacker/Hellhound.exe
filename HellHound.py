@@ -2,9 +2,6 @@ import os
 import sys
 import platform
 import time
-import shutil
-import glob
-from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from cryptography.fernet import Fernet
 import json
@@ -100,9 +97,11 @@ def encrypt_file(filepath, cipher):
 
         return True
     except (Exception, MemoryError):
-        # MemoryError is a BaseException, NOT caught by `except Exception`.
-        # Files larger than available RAM raise it in f.read(); skipping the
-        # file here keeps it from escaping every handler and killing the run.
+        # MemoryError IS a subclass of Exception, so `except Exception`
+        # already caught it before it was named explicitly here; it stays
+        # in the tuple to document the case that matters most: a file
+        # larger than available RAM raises it in f.read(). Skipping the
+        # file keeps one oversized file from killing the whole run.
         # Data-safe: encryption fails before anything is written or removed.
         with deletion_lock:
             stats["errors"] += 1
@@ -213,15 +212,32 @@ def delete_directory_contents_threaded(target_dir, cipher=None, encrypt_before_d
             }
             
             completed = 0
-            for future in as_completed(futures):
-                completed += 1
-                if completed % LOG_FREQUENCY == 0:
-                    print(f"\033[93m[+] Processed {completed}/{len(file_list)} files...\033[0m")
-                
+            try:
+                for future in as_completed(futures):
+                    completed += 1
+                    if completed % LOG_FREQUENCY == 0:
+                        print(f"\033[93m[+] Processed {completed}/{len(file_list)} files...\033[0m")
+
+                    try:
+                        result = future.result()
+                    except Exception as e:
+                        pass
+            except KeyboardInterrupt:
+                # Stop means stop: cancel every file that has not started
+                # instead of letting the pool drain the whole queue on the
+                # way out (the with-block's default shutdown waits for ALL
+                # submitted files — thousands could still be deleted after
+                # the user pressed Ctrl+C). Files already being processed
+                # finish; nothing new starts. The interrupt then propagates
+                # so main() can report the run as interrupted.
                 try:
-                    result = future.result()
-                except Exception as e:
-                    pass
+                    executor.shutdown(wait=False, cancel_futures=True)
+                except TypeError:
+                    pass  # Python < 3.9 has no cancel_futures
+                print("\033[91m[!] Stop requested — no new files will be "
+                      "started in this directory; the remaining queued "
+                      "files will NOT be processed.\033[0m")
+                raise
         
         # Clean up empty directories
         for root, dirs, files in os.walk(target_dir, topdown=False):
@@ -305,6 +321,7 @@ def delete_system_files(encrypt_mode=False):
     
     if not target_paths:
         print("\033[91m[!] No target directories found!\033[0m")
+        stats["end_time"] = datetime.now().isoformat()
         return stats
     
     start_time = time.time()
@@ -413,6 +430,13 @@ def main():
         mode_choice = input("\nEnter choice (1 or 2): ").strip()
         encrypt_mode = mode_choice == "2"
         
+        # Announce the exact scope BEFORE consent: the confirmation only
+        # means something if the user can see which directories are about
+        # to be processed. Nothing is touched until 'YES' is typed.
+        print("\n\033[95m[*] Target directories — files in these locations WILL BE DELETED:\033[0m")
+        for target_path in get_target_paths():
+            print(f"   - {target_path}")
+
         # Confirm user intent
         print("\n\033[91m⚠️  WARNING: This will DELETE files from your system!\033[0m")
         if encrypt_mode:
