@@ -101,6 +101,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   crashing on a corrupt `hellhound_key.key`: the key file is NOT overwritten,
   the user is told to delete it to generate a fresh one, and encryption mode
   refuses cleanly without touching any files.
+- Directory scans no longer fail silently. `os.walk` swallows `scandir`
+  errors by default, so an unreadable directory, an over-long path
+  (> PATH_MAX), or a directory vanishing mid-scan was skipped with no
+  message and no error count — while the run still reported "Directory
+  complete" and "Errors Encountered: 0". Scan failures are now announced
+  as they happen (naming the path and that its contents were NOT
+  processed) and counted in `stats["errors"]`.
+- Reaching the per-tree file limit (`MAX_FILES_LIMIT`) is announced
+  before processing starts, naming the limit and that remaining files
+  were NOT processed. Previously a tree larger than the limit was
+  truncated in silence and still reported as complete.
+- A failed JSON report write (full disk, read-only working directory)
+  no longer turns a completed run into a "Fatal error" exit — the
+  failure is announced and the run's own verdict stands. This also
+  covers the Ctrl+C path, where the report write previously escaped
+  the interrupt handler.
 
 ### Changed
 - Performance pass on the deletion engine (no behavior or signature
