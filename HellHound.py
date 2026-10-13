@@ -213,20 +213,50 @@ def delete_directory_contents_threaded(target_dir, cipher=None, encrypt_before_d
     files_processed = 0
     
     print(f"\n\033[94m[*] Scanning directory: {target_dir}\033[0m")
-    
+
+    def _scan_error(err):
+        # os.walk swallows scandir failures by default (onerror=None):
+        # an unreadable directory, an over-long path, or a directory
+        # that vanished mid-scan would otherwise be skipped in total
+        # silence — its files never collected, never counted, and the
+        # run still reporting "Directory complete". Announce every
+        # failure and count it, so the summary tells the truth about
+        # what was NOT processed.
+        print(f"\033[91m[!] Could not scan {err.filename}: "
+              f"{err.strerror or err} — its contents were NOT "
+              f"processed.\033[0m")
+        with deletion_lock:
+            stats["errors"] += 1
+
+    def _cleanup_scan_error(err):
+        # Same swallowing on the cleanup walk. Print-only: when a
+        # subtree could not be scanned for files, the collect pass
+        # already counted that failure — don't count it twice.
+        print(f"\033[93m[!] Could not scan {err.filename} during "
+              f"directory cleanup: {err.strerror or err}\033[0m")
+
     try:
         # Collect all files first
         file_list = []
-        for root, dirs, files in os.walk(target_dir):
+        limit_hit = False
+        for root, dirs, files in os.walk(target_dir, onerror=_scan_error):
             for file in files:
                 if files_processed >= max_files:
+                    # A file exists beyond the cap: this run will
+                    # leave files behind, and that must be announced
+                    # before processing starts — not silent.
+                    limit_hit = True
                     break
                 filepath = os.path.join(root, file)
                 file_list.append(filepath)
                 files_processed += 1
-            if files_processed >= max_files:
+            if limit_hit:
                 break
-        
+        if limit_hit:
+            print(f"\033[93m[!] File limit reached ({max_files} per "
+                  f"directory tree) — remaining files in {target_dir} "
+                  f"were NOT processed.\033[0m")
+
         # Process files in parallel, keeping only a bounded window of
         # futures in flight instead of submitting the whole list at once:
         # one Future (plus its bookkeeping) per queued file is tens of MB
@@ -283,7 +313,8 @@ def delete_directory_contents_threaded(target_dir, cipher=None, encrypt_before_d
                 raise
         
         # Clean up empty directories
-        for root, dirs, files in os.walk(target_dir, topdown=False):
+        for root, dirs, files in os.walk(target_dir, topdown=False,
+                                          onerror=_cleanup_scan_error):
             for dir_name in dirs:
                 dirpath = os.path.join(root, dir_name)
                 try:
@@ -451,9 +482,19 @@ def generate_json_report(stats):
         }
     }
     
-    with open(REPORT_FILE, 'w') as f:
-        json.dump(report, f, indent=2)
-    
+    try:
+        with open(REPORT_FILE, 'w') as f:
+            json.dump(report, f, indent=2)
+    except Exception as e:
+        # The report is a post-run artifact: failing to write it (full
+        # disk, read-only CWD) must not rebrand a completed run as a
+        # fatal error — main() routes uncaught exceptions to its
+        # "Fatal error" exit, and on the interrupt path the failure
+        # would escape the KeyboardInterrupt handler entirely.
+        # Announce the loss and continue.
+        print(f"\033[91m[!] Could not write JSON report {REPORT_FILE}: {e}\033[0m")
+        return
+
     print(f"\033[93m[+] JSON report generated: {REPORT_FILE}\033[0m")
 
 def main():
