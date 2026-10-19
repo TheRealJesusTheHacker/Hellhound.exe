@@ -4,11 +4,145 @@
 [![Latest release](https://img.shields.io/github/v/release/TheRealJesusTheHacker/Hellhound.exe?label=latest%20release)](https://github.com/TheRealJesusTheHacker/Hellhound.exe/releases/latest)
 [![License: MIT](https://img.shields.io/github/license/TheRealJesusTheHacker/Hellhound.exe)](LICENSE)
 
-A blood-red PyQt5 **visual simulation of a ransomware kill chain** —
-infiltration → reconnaissance → encryption → deletion → ransom note —
-played out live against 256 virtual files in an in-memory filesystem.
+An **education tool** that shows — visibly, step by step, with nothing
+hidden — exactly what real destructive malware does. This repository
+contains two programs:
 
-## ⚠ EDUCATIONAL DEMONSTRATION — READ THIS FIRST
+1. **`HellHound.py`** (repository root) — a command-line demonstrator that
+   performs **real** file encryption and **real** file deletion on the
+   machine it runs on.
+2. **`visual-demo/`** — a blood-red PyQt5 **visual simulation** of a
+   ransomware kill chain, played out against virtual files in memory.
+   The demo never touches real files; the command-line tool does.
+
+## ⚠ WARNING — READ THIS FIRST
+
+**`HellHound.py` destroys real files. This is not a simulation.**
+
+When you run it and confirm, it permanently deletes real files from real
+directories on the machine it runs on — and in encryption mode it encrypts
+each file first, then deletes it. There is **no undo**, no recycle-bin
+restore, and no recovery feature. Deleted files are gone.
+
+What it targets (only directories that exist are processed):
+
+- **Windows:** `%USERPROFILE%\AppData\Local\Temp`,
+  `%USERPROFILE%\Downloads`, `%USERPROFILE%\Desktop`, and
+  `%USERPROFILE%\AppData\Roaming\Microsoft\Windows\Recent`
+- **Linux / macOS:** `/tmp`, `~/.cache`, and `~/.local/share/Trash`
+
+Up to 5,000 files per directory tree are processed, and subdirectories
+left empty are removed.
+
+**Only run it on a machine you own, with files you can afford to lose
+permanently.** Never run it on a machine — or a user account — whose
+Downloads, Desktop, or other targeted files matter to you or to anyone
+else. Use a throwaway machine, a VM, or a test account, and read the
+target list it prints before you confirm.
+
+### The consent flow — nothing happens silently
+
+Hellhound is "fictional malware" in exactly one sense: its story is
+invented, and it announces and visualizes everything it does instead of
+hiding like real malware would. The actions of the command-line tool are
+real. Before anything is touched:
+
+1. A warning banner states plainly that this is a destructive tool for
+   educational use only.
+2. You choose the mode — **1) deletion only** or **2) encryption +
+   deletion**. An unrecognized choice exits immediately; nothing is
+   touched and there is no silent fallback to a destructive mode.
+3. The **exact target directories are printed before the confirmation
+   prompt**, so consent is given against the real scope.
+4. You must type **`YES`** to proceed. Anything else cancels the run.
+5. During the run, every action is logged to the console in real time —
+   scanning, progress checkpoints, errors, and limits are all announced,
+   never silent.
+
+In encryption mode, the Fernet key is written to `hellhound_key.key` in
+the working directory (generated on first use, loaded after that). If that
+file exists but is corrupt, the tool refuses to run and touches nothing
+until you delete the key file yourself.
+
+## Why this exists
+
+Most people understand destructive malware as an abstract threat: *"your
+files get deleted."* Hellhound makes it concrete. It exists so students,
+educators, and defenders can **see exactly what real malware does** — how
+it enumerates files, why ransomware encrypts *before* it deletes, how
+parallel processing makes destruction fast, and how defenders stop it.
+Everything is up front: warnings before it runs, the exact scope before
+consent, live narration while it works, and a written report after it
+finishes. Nothing is a surprise — that honesty is the point of the tool.
+
+## The two programs at a glance
+
+| | `HellHound.py` (root) | Visual demo (`visual-demo/`) |
+|---|---|---|
+| Touches real files | **Yes — encrypts and/or deletes them** | Never — fully virtual, in-memory filesystem |
+| Interface | Command line | PyQt5 GUI (also shipped as `Hellhound.exe`) |
+| Subject | Real destructive mechanics: threaded deletion, encrypt-before-delete | A staged ransomware kill chain: infiltration → recon → encryption → deletion → ransom note |
+| Run it | `python HellHound.py` | `python visual-demo/hellhound_demo.py`, or the release executable |
+| Version | 2.0, plus fixes in progress (see CHANGELOG) | 1.3.0 |
+
+## `HellHound.py` — the real destructive demonstrator
+
+Cross-platform (Windows, Linux, macOS), single file, built for the
+command line.
+
+### How it works
+
+- **Scan first.** Each target tree is walked and its files collected
+  before processing starts. Directories that cannot be scanned are
+  announced by name — with a note that their contents were *not*
+  processed — and counted as errors; a run never reports a partial tree
+  as "complete" in silence. If a tree holds more than the 5,000-file
+  cap, that is announced before processing starts.
+- **Threaded deletion.** Files are processed by a `ThreadPoolExecutor`
+  with 16 workers, submitted in a bounded window rather than all at
+  once. Each worker checks its file with a single `lstat`: only regular
+  files are touched — symlinks are never followed or deleted.
+- **Encryption mode (optional).** With mode 2, each file is encrypted in
+  place with Fernet (from the `cryptography` library) immediately before
+  it is deleted — the ransomware order of operations, done in the open.
+  If a single file's encryption fails (for example, a file larger than
+  available RAM, which is read fully into memory), the error is counted
+  and announced in the summary, and the file is still deleted.
+- **Cleanup.** After a tree is processed, its now-empty subdirectories
+  are removed bottom-up.
+- **Ctrl+C stops the queue.** Interrupting a run cancels every file that
+  has not started yet; files already being processed finish. A report is
+  still written for the interrupted run.
+
+### Install and run
+
+Requirements: Python 3.8+ and the `cryptography` library.
+
+```bash
+# from the repo root
+pip install -r requirements.txt
+python HellHound.py
+```
+
+Then choose the mode, read the target directories it prints, and type
+`YES` only if you accept losing those files permanently.
+
+### What a run leaves behind
+
+- The deleted files and emptied directories are **gone** — that is the
+  demonstration.
+- `hellhound_report.json` — a machine-readable report: tool version,
+  platform, timestamps, files/directories deleted, files encrypted,
+  data volumes, execution time and deletion rate, error count, and the
+  educational context (techniques used, standard mitigations).
+- `hellhound_key.key` — in encryption mode, the Fernet key file
+  described above.
+- A console summary with the same destruction, encryption, and
+  performance metrics.
+
+## The visual demo — simulation only
+
+The rest of this README covers the visual demo in `visual-demo/`.
 
 **This demo never touches real files.** Everything happens inside a fully
 virtual (in-memory) filesystem: 256 fake files with a deterministic seed,
@@ -20,10 +154,8 @@ deleted in the sim), but it cannot reach your real files. A yellow
 
 Educational purposes only. The authors assume no liability for misuse.
 
-## What this is, and why it exists
-
 Most people understand ransomware as an abstract threat: *"your files get
-encrypted."* HELLHOUND makes the kill chain **visible**. Built for live
+encrypted."* The demo makes the kill chain **visible**. Built for live
 demonstration shows and security education, it walks an audience through
 exactly how a deletion virus works — how it lands, how it maps your files,
 why it encrypts *before* it wipes, how it destroys your backups so you
@@ -41,6 +173,9 @@ stage, not a weapon: scary on purpose, harmless by construction.
   *and* the countermeasure, so blue-team lessons land visually.
 - **Content creators** explaining ransomware to non-technical audiences —
   the demo narrates itself in plain language.
+- **Students of the real thing** who run `HellHound.py` on a throwaway
+  machine or VM to watch actual threaded deletion and encrypt-before-delete
+  behavior on files they can afford to lose.
 
 ## How it works
 
@@ -162,7 +297,7 @@ button refuses until destruction is complete — *"You can't close
 HellHound. It finishes what it started."* This theatrical behavior is
 deliberate and covered by tests; it is not a bug.
 
-## Install and run
+## Install and run the visual demo
 
 Requirements: Python 3.7+, PyQt5.
 
@@ -207,26 +342,24 @@ black --check visual-demo tests
 
 ```
 .
+├── HellHound.py               # the real destructive demonstrator (CLI) — see warning above
+├── requirements.txt           # cryptography, for HellHound.py
 ├── visual-demo/
-│   ├── hellhound_demo.py      # the whole demo, single file (PyQt5)
+│   ├── hellhound_demo.py      # the visual demo, single file (PyQt5)
 │   ├── requirements.txt       # PyQt5, pinned
 │   ├── README.md              # demo-focused overview
 │   └── assets/
 │       ├── hellhound_logo.png # evil dog artwork (header, icon, ransom note)
 │       └── hellhound.ico      # Windows exe icon
-├── tests/                     # headless pytest suite (offscreen Qt)
+├── tests/                     # headless pytest suite for the visual demo (offscreen Qt)
 ├── .github/workflows/
 │   ├── ci.yml                 # tests + ruff + black (push/PR)
 │   ├── build-exe.yml          # builds Hellhound.exe on release
 │   └── codeql.yml             # CodeQL scanning
-├── CHANGELOG.md               # Keep a Changelog
+├── CHANGELOG.md               # Keep a Changelog; covers both programs
 ├── SECURITY.md                # how to report vulnerabilities
 └── LICENSE                    # MIT
 ```
-
-Note: the repo root also contains `HellHound.py`, which is deliberately
-left untouched and is not described in this README — this document covers
-the visual demo only.
 
 ## Changelog & security
 
@@ -254,6 +387,6 @@ MIT — see [LICENSE](LICENSE).
 
 ---
 
-*HELLHOUND is an educational simulation. In a real attack there is no
+*HELLHOUND is an educational tool. In a real attack there is no
 reset button: keep offline backups, patch your systems, and have an
 incident response plan before you need one.*
