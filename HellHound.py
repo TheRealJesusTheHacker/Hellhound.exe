@@ -515,6 +515,11 @@ def main():
         print("   2) Encryption + Deletion (Destructive)")
         
         mode_choice = input("\nEnter choice (1 or 2): ").strip()
+        if mode_choice not in ("1", "2"):
+            # Fail closed: an unrecognized choice must never silently
+            # fall back to a destructive mode the user did not pick.
+            print("\033[91m[!] Invalid choice — enter 1 or 2. Nothing was touched.\033[0m")
+            sys.exit(0)
         encrypt_mode = mode_choice == "2"
         
         # Announce the exact scope BEFORE consent: the confirmation only
@@ -523,6 +528,8 @@ def main():
         print("\n\033[95m[*] Target directories — files in these locations WILL BE DELETED:\033[0m")
         for target_path in get_target_paths():
             print(f"   - {target_path}")
+        print(f"   Up to {MAX_FILES_LIMIT} files per directory tree will be processed,")
+        print("   and subdirectories left empty will be removed.")
 
         # Confirm user intent
         print("\n\033[91m⚠️  WARNING: This will DELETE files from your system!\033[0m")
