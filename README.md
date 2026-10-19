@@ -383,7 +383,7 @@ bc1qvydns2fmyjzj55wzxq7ta28nxdhcmu9l9m6yg0
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Proprietary — all rights reserved. See [LICENSE](LICENSE).
 
 ---
 
