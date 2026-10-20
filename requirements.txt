@@ -1,4 +1,4 @@
 # Requirements for HellHound Malware Educational Tool
 
-# Cryptography for file encryption (AES-256)
+# Cryptography for file encryption (Fernet: AES-128-CBC)
 cryptography>=41.0.0
