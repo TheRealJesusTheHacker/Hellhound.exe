@@ -90,10 +90,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   report no longer show a null end time on that path.
 - Removed unused imports (`shutil`, `glob`, `pathlib.Path`) from
   `HellHound.py`.
-- Ctrl+C now stops a run promptly: queued files in the current directory
-  are cancelled instead of being deleted while the thread pool drains
-  (previously every submitted file — up to the 5,000-file cap — was still
-  processed after the interrupt, before the "interrupted" report).
 - `main()` announces the exact target directories before the 'YES'
   confirmation prompt, so consent is given against the real scope instead
   of each directory being named only as its processing begins.
@@ -114,22 +110,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   truncated in silence and still reported as complete.
 - A failed JSON report write (full disk, read-only working directory)
   no longer turns a completed run into a "Fatal error" exit — the
-  failure is announced and the run's own verdict stands. This also
-  covers the Ctrl+C path, where the report write previously escaped
-  the interrupt handler.
+  failure is announced and the run's own verdict stands.
 
 ### Changed
 - Performance pass on the deletion engine (no behavior or signature
   changes; verified by before/after benchmarks on synthetic trees plus
-  parity and Ctrl+C harnesses):
+  parity harnesses):
   - The per-file acceptance check is a single `lstat` instead of three
     stat calls (`isfile` + `islink` + `getsize`); `encrypt_file` likewise
     uses one `stat` instead of `isfile()` + `getsize()`. The set of files
     accepted/skipped — symlinks never followed or deleted — is unchanged.
   - Futures are submitted in a bounded window (`MAX_WORKERS * 4`) instead
     of one per file up front: peak memory on a 25,000-file run dropped
-    from ~78 MB to ~26 MB, and Ctrl+C has at most a windowful of queued
-    files to cancel. Progress announcements and totals are unchanged.
+    from ~78 MB to ~26 MB. Progress announcements and totals are unchanged.
   - Thread pool widened 8 → 16 workers (deletion is I/O-latency-bound;
     ~40% faster on the benchmark tree, 32 workers was no better).
   - Empty-directory cleanup attempts `rmdir` directly instead of listing
