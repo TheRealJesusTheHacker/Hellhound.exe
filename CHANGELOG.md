@@ -111,6 +111,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A failed JSON report write (full disk, read-only working directory)
   no longer turns a completed run into a "Fatal error" exit — the
   failure is announced and the run's own verdict stands.
+- Ctrl+C during a run no longer stops it: the processing loop's
+  interrupt handler cancelled every queued file and abandoned the
+  rest of the announced scope. Interrupts during a run (scan,
+  processing, directory cleanup) are now announced and disregarded,
+  so a started run completes its announced scope — matching the
+  documented design. Ctrl+C is honored only at the prompts before a
+  run starts; ending a started run means ending the process.
 
 ### Changed
 - Performance pass on the deletion engine (no behavior or signature
