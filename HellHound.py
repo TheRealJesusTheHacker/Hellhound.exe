@@ -293,8 +293,18 @@ def delete_directory_contents_threaded(target_dir, cipher=None, encrypt_before_d
 
                         try:
                             future.result()
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            # Workers report every expected failure
+                            # (the OSError family) into stats themselves,
+                            # so an exception escaping a worker is by
+                            # definition unexpected. It must not vanish:
+                            # that file was NOT processed, so count it
+                            # and announce it -- a silent swallow would
+                            # let the summary claim a clean run.
+                            with deletion_lock:
+                                stats["errors"] += 1
+                            print(f"\033[91m[!] A worker failed unexpectedly "
+                                  f"({e}) — one file was NOT processed.\033[0m")
             except KeyboardInterrupt:
                 # Stop means stop: cancel every file that has not started
                 # instead of letting the pool drain the whole queue on the
@@ -388,7 +398,9 @@ def delete_system_files(encrypt_mode=False):
             stats["end_time"] = datetime.now().isoformat()
             return stats
         cipher = Fernet(key)
-        print(f"\033[93m[+] Cipher initialized for AES-256 encryption\033[0m")
+        # Fernet is AES-128-CBC + HMAC-SHA256 -- name the cipher actually
+        # in use; claiming AES-256 misstates what protected the files.
+        print(f"\033[93m[+] Cipher initialized for AES-128-CBC encryption (Fernet)\033[0m")
     
     print("\n\033[91m" + "="*60)
     print("BEGINNING THREADED FILE DELETION SEQUENCE")
@@ -560,6 +572,15 @@ def main():
         sys.exit(0)
     except Exception as e:
         print(f"\033[91m[!] Fatal error: {e}\033[0m")
+        if stats["start_time"] is not None:
+            # A run had started, so files may already be deleted. Exit
+            # without a record and that destruction goes unreported --
+            # write the same JSON report the interrupt path writes
+            # (generate_json_report announces its own write failures).
+            # Before the run starts (consent prompts, mode entry) no
+            # report is written, exactly as before.
+            stats["end_time"] = datetime.now().isoformat()
+            generate_json_report(stats)
         sys.exit(1)
 
 if __name__ == "__main__":
