@@ -141,6 +141,34 @@ def test_ctrl_c_during_cleanup_does_not_truncate_scope(tmp_path, monkeypatch, ca
 
 
 # ---------------------------------------------------------------------------
+# Ctrl+C between trees: still inside a started run — scope completes
+# ---------------------------------------------------------------------------
+
+
+def test_ctrl_c_between_trees_does_not_truncate_scope(monkeypatch, capsys):
+    """A Ctrl+C landing OUTSIDE the worker's protected phases (at the
+    per-tree call in delete_system_files) used to escape to main()'s
+    interrupt handler and stop the run mid-scope. The tree must be
+    re-processed and every announced tree must complete."""
+    trees = ["/tree/one", "/tree/two", "/tree/three"]
+    monkeypatch.setattr(HellHound, "get_target_paths", lambda: trees)
+    calls = []
+
+    def flaky_worker(path, cipher=None, encrypt=False, max_files=0):
+        calls.append(path)
+        if path == "/tree/two" and calls.count("/tree/two") == 1:
+            raise KeyboardInterrupt
+        return (3, 1)
+
+    monkeypatch.setattr(HellHound, "delete_directory_contents_threaded", flaky_worker)
+    HellHound.delete_system_files(encrypt_mode=False)
+    # Tree two was attempted, interrupted, and re-processed; tree three
+    # still ran. Nothing was silently dropped from the announced scope.
+    assert calls == ["/tree/one", "/tree/two", "/tree/two", "/tree/three"]
+    assert "does not stop mid-run" in capsys.readouterr().out
+
+
+# ---------------------------------------------------------------------------
 # Ctrl+C before a run starts: the consent gate still aborts cleanly
 # ---------------------------------------------------------------------------
 

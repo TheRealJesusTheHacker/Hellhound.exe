@@ -78,6 +78,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Sweep #3, 2026-10-21 (education-tool lens — warnings / consent /
+  announced scope / no silent actions): a Ctrl+C landing *between*
+  trees in `delete_system_files` — outside the worker's scan /
+  processing / cleanup phases, the only places that disregard it —
+  escaped to `main()`'s interrupt handler and stopped the run
+  mid-scope, contradicting the in-run "does not stop mid-run"
+  announcements. The interrupted tree is now re-processed (idempotent)
+  and the run completes its announced scope; regression test in
+  `tests/test_hellhound.py`.
 - `encrypt_file` catches `MemoryError` alongside `Exception`: the explicit
   name documents the case that matters — a file larger than available RAM
   raises it in `f.read()`. (Correction: `MemoryError` is a subclass of
