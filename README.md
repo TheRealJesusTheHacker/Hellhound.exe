@@ -172,14 +172,15 @@ Then choose the mode, read the target directories it prints, and type
   demonstration.
 - `hellhound_report.json` — a machine-readable report: tool version
   (2.0), platform, timestamps, files/directories deleted, files
-  encrypted, data volumes, execution time and deletion rate, error
+  encrypted, data volumes, execution time, error
   count, and the educational context (techniques used, standard
   mitigations).
 - `hellhound_key.key` — in encryption mode, the Fernet key file
   described under [Configuration](#configuration). It is **not** a
   recovery mechanism: encryption is immediately followed by deletion.
 - A console summary with the same destruction, encryption, and
-  performance metrics.
+  performance metrics (plus the deletion rate, which is shown in the
+  console summary only).
 
 ---
 
