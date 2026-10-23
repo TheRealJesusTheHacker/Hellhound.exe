@@ -465,10 +465,11 @@ directories).
 
 ## Development and testing
 
-The demo ships with a headless test suite (pytest,
-`QT_QPA_PLATFORM=offscreen`): **10 tests**, verified by collection
-from the repository tree. They exercise the deterministic virtual
-filesystem, build the full UI offscreen, run a complete kill chain to
+The suite ships with a headless test suite (pytest,
+`QT_QPA_PLATFORM=offscreen`): **16 tests** — 10 for the visual demo
+and 6 for `HellHound.py` — verified by collection from the repository
+tree. The demo tests exercise the deterministic virtual filesystem,
+build the full UI offscreen, run a complete kill chain to
 destruction, verify reset, and confirm the intentional mid-attack
 close refusal:
 
@@ -504,7 +505,7 @@ published.
 │   └── assets/
 │       ├── hellhound_logo.png # evil dog artwork (header, icon, ransom note)
 │       └── hellhound.ico      # Windows exe icon
-├── tests/                     # headless pytest suite for the visual demo (offscreen Qt)
+├── tests/                     # headless pytest suite (visual demo offscreen Qt + HellHound.py)
 ├── .github/workflows/
 │   ├── ci.yml                 # tests + ruff + black + root compile check (push/PR)
 │   ├── build-exe.yml          # builds Hellhound.exe on release
