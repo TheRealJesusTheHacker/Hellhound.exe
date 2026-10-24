@@ -189,3 +189,59 @@ def test_ctrl_c_at_prompt_aborts_before_anything_is_touched(tmp_path, monkeypatc
     # Nothing was touched, and the abort is still reported as before.
     assert _files_left(target) == 60
     assert (tmp_path / "hellhound_report.json").exists()
+
+
+# ---------------------------------------------------------------------------
+# Sweep 5 regressions
+# ---------------------------------------------------------------------------
+
+
+def test_encrypt_file_refuses_symlink_and_leaves_target_untouched(tmp_path):
+    """encrypt_file must apply the worker's lstat rule: a symlink is
+    not a regular file, and its target — possibly outside the
+    announced scope — must never be written."""
+    pytest.importorskip("cryptography")
+    from cryptography.fernet import Fernet
+
+    outside = tmp_path / "outside.txt"
+    outside.write_text("do not touch")
+    link = tmp_path / "link.txt"
+    try:
+        link.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    cipher = Fernet(Fernet.generate_key())
+    assert HellHound.encrypt_file(str(link), cipher) is False
+    assert outside.read_text() == "do not touch"
+
+
+def test_generated_key_file_is_owner_only(tmp_path, monkeypatch):
+    if os.name != "posix":
+        pytest.skip("POSIX mode bits only")
+    monkeypatch.chdir(tmp_path)
+    HellHound.generate_encryption_key()
+    mode = (tmp_path / HellHound.ENCRYPTION_KEY_FILE).stat().st_mode
+    assert mode & 0o077 == 0
+
+
+def test_scan_restart_does_not_double_count_scan_errors(tmp_path, monkeypatch):
+    target = _make_tree(tmp_path, count=6)
+    real_walk = os.walk
+    state = {"calls": 0}
+
+    def flaky(*args, **kwargs):
+        state["calls"] += 1
+        if state["calls"] <= 2:
+            # The same unreadable directory fails on BOTH scan
+            # attempts (attempt 1 is interrupted, attempt 2 is the
+            # restart). Without the rollback it would be counted
+            # twice for one real failure.
+            kwargs["onerror"](OSError(13, "Permission denied", str(target / "sub")))
+        if state["calls"] == 1:
+            raise KeyboardInterrupt
+        return real_walk(*args, **kwargs)
+
+    monkeypatch.setattr(os, "walk", flaky)
+    deleted, _ = HellHound.delete_directory_contents_threaded(str(target))
+    assert deleted == 6
+    assert HellHound.stats["errors"] == 1  # one real failure, counted once

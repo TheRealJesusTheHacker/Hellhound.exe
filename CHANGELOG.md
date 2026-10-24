@@ -78,6 +78,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Sweep #5, 2026-10-24 (bug hunt + performance): `encrypt_file` now
+  gates on `lstat` like the worker does — with `stat` (follow) a path
+  swapped for a symlink between the worker's check and encryption
+  would have encrypted the symlink's target, a file outside the
+  announced target trees, in place. Symlinks are refused and their
+  targets are never written. The generated encryption key file is now
+  created owner-only (0o600) instead of inheriting the umask. A scan
+  restarted after Ctrl+C no longer double-counts scan errors in the
+  final summary. Removed the vestigial per-file deletion delay
+  (measured on a 2,000-file synthetic tree: ~1.16 s → ~0.37–0.58 s).
+  Regression tests for all four in `tests/test_hellhound.py`.
 - Sweep #3, 2026-10-21 (education-tool lens — warnings / consent /
   announced scope / no silent actions): a Ctrl+C landing *between*
   trees in `delete_system_files` — outside the worker's scan /
