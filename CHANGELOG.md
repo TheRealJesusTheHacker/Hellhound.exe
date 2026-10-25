@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Hellhound.exe — visual demo
 
+## [1.4.0] - 2026-10-25
+
+### Changed
+- Release of the current `main` state. The visual demo's behavior is
+  unchanged from 1.3.0; what this release ships on top of it is the
+  repository work since then, in plain terms:
+  - Sweep #5 fix in the root `HellHound.py` tool (see the
+    HellHound [Unreleased] entries below, which this release carries):
+    `encrypt_file` now refuses symlinks by the same `lstat` rule the
+    worker uses, so a path swapped for a symlink mid-run can no longer
+    cause a file outside the announced target trees to be encrypted in
+    place; the generated encryption key file is created owner-only
+    (0o600); a scan restarted after Ctrl+C no longer double-counts
+    scan errors.
+  - Dependency installs are hash-locked: every install path (CI, the
+    release build, and the documented from-source installs) runs
+    `pip install --require-hashes` against committed lock files, so a
+    mismatched artifact fails the install loudly.
+  - A functional pass over both programs (headless demo runs with
+    ransomware mode on and off, and the root tool's consent/scope
+    flow exercised against a scratch directory only) found no
+    defects. Suite: 19 passed.
+
 ## [1.3.0] - 2026-10-11
 
 ### Added
@@ -200,7 +223,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/compare/visual-demo-v1.3...main
+[Unreleased]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/compare/visual-demo-v1.4...main
+[1.4.0]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/releases/tag/visual-demo-v1.4
 [1.3.0]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/releases/tag/visual-demo-v1.3
 [1.2.0]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/releases/tag/visual-demo-v1.2
 [1.1.0]: https://github.com/TheRealJesusTheHacker/Hellhound.exe/releases/tag/visual-demo-v1.1

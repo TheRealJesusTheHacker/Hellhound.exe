@@ -78,7 +78,7 @@ This repository contains **two distinct programs**:
 | Interface | Command line | PyQt5 GUI (also shipped as `Hellhound.exe`) |
 | Subject | Real destructive mechanics: threaded deletion, encrypt-before-delete | A staged ransomware kill chain: infiltration → recon → encryption → deletion → ransom note |
 | Run it | `python HellHound.py` | `python visual-demo/hellhound_demo.py`, or the release executable |
-| Version | 2.0, plus further fixes in progress (see CHANGELOG) | 1.3.0 |
+| Version | 2.0, plus further fixes in progress (see CHANGELOG) | 1.4.0 |
 
 ## Who it's for
 
@@ -522,8 +522,8 @@ published.
   robustness fixes documented as *Unreleased* in the CHANGELOG
   (announced scan failures, announced file-cap hits, corrupt-key
   refusal, truthful cipher naming, reports on failed runs).
-- **Visual demo:** version 1.3.0 — the latest release
-  (`visual-demo-v1.3`) ships `Hellhound.exe` for Windows.
+- **Visual demo:** version 1.4.0 — the latest release
+  (`visual-demo-v1.4`) ships `Hellhound.exe` for Windows.
 - Both programs are in active development; the CHANGELOG is the
   record of what changed and when.
 
