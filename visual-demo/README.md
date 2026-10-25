@@ -57,14 +57,14 @@ warning strips say so throughout the app.
 From this directory:
 
 ```bash
-pip install -r requirements.txt
+pip install --require-hashes -r requirements.lock.txt
 python hellhound_demo.py
 ```
 
 Or from the repository root:
 
 ```bash
-pip install -r visual-demo/requirements.txt
+pip install --require-hashes -r visual-demo/requirements.lock.txt
 python visual-demo/hellhound_demo.py
 ```
 

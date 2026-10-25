@@ -135,7 +135,7 @@ Requirements: Python 3.8+ and the `cryptography` library.
 
 ```bash
 # from the repo root
-pip install -r requirements.txt
+pip install --require-hashes -r requirements.lock.txt
 python HellHound.py
 ```
 
@@ -230,7 +230,7 @@ Requirements: Python 3.7+, PyQt5 (pinned in
 
 ```bash
 # from the repo root
-pip install -r visual-demo/requirements.txt
+pip install --require-hashes -r visual-demo/requirements.lock.txt
 python visual-demo/hellhound_demo.py
 ```
 

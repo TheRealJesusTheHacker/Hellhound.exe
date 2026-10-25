@@ -1,0 +1,5 @@
+# Build-only dependencies for the Windows exe workflow: the
+# demo's runtime requirements plus PyInstaller, at the exact
+# version the workflow previously installed ad hoc.
+-r requirements.txt
+pyinstaller==6.22.3

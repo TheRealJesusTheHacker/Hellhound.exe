@@ -1,0 +1,4 @@
+# Lint-only dependencies for CI, at the exact versions the
+# workflow previously installed ad hoc.
+ruff==0.17.0
+black==26.10.1

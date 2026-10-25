@@ -10,6 +10,11 @@ on:
       - ".github/workflows/ci.yml"
       - "HellHound.py"
       - "requirements.txt"
+      - "requirements.lock.txt"
+      - "requirements-test.txt"
+      - "requirements-test.lock.txt"
+      - "requirements-lint.txt"
+      - "requirements-lint.lock.txt"
   pull_request:
     branches: ["main"]
 
@@ -36,9 +41,10 @@ jobs:
 
       - name: Install demo and test dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r visual-demo/requirements.txt pytest
-          pip install -r requirements.txt
+          # No pip self-upgrade: an unhashed self-upgrade would break
+          # the hash-verified chain (fleet --require-hashes policy).
+          # All installs below use the committed hash locks.
+          pip install --require-hashes -r requirements-test.lock.txt
 
       - name: Run headless tests (offscreen Qt)
         env:
@@ -58,7 +64,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install linters
-        run: python -m pip install --upgrade pip "ruff==0.17.0" "black==26.10.1"
+        run: pip install --require-hashes -r requirements-lint.lock.txt
 
       - name: Ruff
         run: ruff check visual-demo tests
@@ -80,8 +86,7 @@ jobs:
 
       - name: Install root dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install --require-hashes -r requirements.lock.txt
 
       - name: Compile root tool
         run: python -m py_compile HellHound.py

@@ -1,0 +1,7 @@
+# Test dependencies for the CI test job: the root tool's
+# requirements plus the visual demo's requirements, with pytest
+# on top (the workflow previously installed pytest unpinned,
+# alongside the two requirements files below).
+-r requirements.txt
+-r visual-demo/requirements.txt
+pytest
